@@ -1069,8 +1069,6 @@ class PlayerActivity : AppCompatActivity() {
     }
     
     private fun applyVideoFilter(filter: VideoFilter) {
-        val surfaceView = binding.playerView.videoSurfaceView
-        
         val colorMatrix = when (filter) {
             VideoFilter.NONE -> null
             VideoFilter.GRAYSCALE -> android.graphics.ColorMatrix().apply { setSaturation(0f) }
@@ -1099,7 +1097,7 @@ class PlayerActivity : AppCompatActivity() {
                 0f, 0f, 0f, 1f, 0f
             ))
             VideoFilter.SATURATION -> android.graphics.ColorMatrix().apply { setSaturation(1.5f) }
-            VideoFilter.SHARPEN -> android.graphics.ColorMatrix().apply { setSaturation(1.2f) } // Approximation
+            VideoFilter.SHARPEN -> android.graphics.ColorMatrix().apply { setSaturation(1.2f) }
             VideoFilter.VIGNETTE -> android.graphics.ColorMatrix(floatArrayOf(
                 0.9f, 0f, 0f, 0f, 0f,
                 0f, 0.9f, 0f, 0f, 0f,
@@ -1120,11 +1118,19 @@ class PlayerActivity : AppCompatActivity() {
             ))
         }
         
+        // Apply color filter using PlayerView's overlay framebuffer
+        val overlayView = binding.playerView.overlayFrameLayout
         if (colorMatrix != null) {
-            surfaceView?.setColorFilter(android.graphics.ColorMatrixColorFilter(colorMatrix))
+            val paint = android.graphics.Paint().apply {
+                colorFilter = android.graphics.ColorMatrixColorFilter(colorMatrix)
+            }
+            overlayView?.setLayerType(View.LAYER_TYPE_HARDWARE, paint)
+            // Also apply to the entire player view for effect
+            binding.playerView.setLayerType(View.LAYER_TYPE_HARDWARE, paint)
             Toast.makeText(this, "Filter: ${filter.displayName}", Toast.LENGTH_SHORT).show()
         } else {
-            surfaceView?.setColorFilter(null)
+            overlayView?.setLayerType(View.LAYER_TYPE_NONE, null)
+            binding.playerView.setLayerType(View.LAYER_TYPE_NONE, null)
             Toast.makeText(this, "Filter removed", Toast.LENGTH_SHORT).show()
         }
     }
