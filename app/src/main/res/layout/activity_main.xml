@@ -47,6 +47,10 @@
                     android:layout_height="match_parent"
                     android:clipToPadding="false"
                     android:padding="8dp"
+                    android:scrollbars="vertical"
+                    android:scrollbarStyle="outsideOverlay"
+                    android:scrollbarThumbVertical="@drawable/scrollbar_thumb"
+                    android:fadeScrollbars="false"
                     tools:listitem="@layout/item_video" />
 
             </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>

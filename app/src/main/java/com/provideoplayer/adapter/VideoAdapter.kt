@@ -59,9 +59,11 @@ class VideoAdapter(
                 if (isWatched) {
                     size.text = video.getFormattedSize()
                     size.setTextColor(itemView.context.getColor(R.color.text_secondary))
+                    size.setTypeface(null, android.graphics.Typeface.NORMAL)
                 } else {
-                    size.text = "NEW"
-                    size.setTextColor(itemView.context.getColor(R.color.teal_200))
+                    size.text = "● NEW"
+                    size.setTextColor(android.graphics.Color.parseColor("#00FF7F"))  // Bright green
+                    size.setTypeface(null, android.graphics.Typeface.BOLD)
                 }
             } else {
                 size.text = video.getFormattedSize()
