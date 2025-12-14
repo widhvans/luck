@@ -27,6 +27,9 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Apply saved theme before calling super.onCreate
+        applyAppTheme()
+        
         super.onCreate(savedInstanceState)
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -36,6 +39,20 @@ class SettingsActivity : AppCompatActivity() {
         setupToolbar()
         loadSettings()
         setupListeners()
+    }
+    
+    private fun applyAppTheme() {
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        val themeMode = prefs.getInt(KEY_THEME, 0)
+        
+        when (themeMode) {
+            0 -> { /* System Default - no override */ }
+            1 -> setTheme(R.style.Theme_ProVideoPlayer_Light)
+            2 -> setTheme(R.style.Theme_ProVideoPlayer)  // Dark
+            3 -> setTheme(R.style.Theme_ProVideoPlayer_Amoled)
+            4 -> setTheme(R.style.Theme_ProVideoPlayer_Blue)
+            5 -> setTheme(R.style.Theme_ProVideoPlayer_Pink)
+        }
     }
 
     private fun setupToolbar() {
@@ -118,16 +135,17 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun showThemeDialog() {
-        val themes = arrayOf("System Default", "Light", "Dark")
+        val themes = arrayOf("System Default", "Light", "Dark", "AMOLED Black", "Blue Ocean", "Pink Rose")
         val currentTheme = prefs.getInt(KEY_THEME, 0)
 
         MaterialAlertDialogBuilder(this)
             .setTitle("App Theme")
             .setSingleChoiceItems(themes, currentTheme) { dialog, which ->
                 prefs.edit().putInt(KEY_THEME, which).apply()
-                applyTheme(which)
                 updateThemeText()
                 dialog.dismiss()
+                // Recreate activity to apply theme
+                recreate()
             }
             .show()
     }
@@ -136,12 +154,12 @@ class SettingsActivity : AppCompatActivity() {
         when (mode) {
             0 -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
             1 -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-            2 -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+            else -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         }
     }
 
     private fun updateThemeText() {
-        val themes = arrayOf("System Default", "Light", "Dark")
+        val themes = arrayOf("System Default", "Light", "Dark", "AMOLED Black", "Blue Ocean", "Pink Rose")
         val currentTheme = prefs.getInt(KEY_THEME, 0)
         binding.textThemeValue.text = themes[currentTheme]
     }
@@ -186,7 +204,7 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun showAboutDialog() {
         MaterialAlertDialogBuilder(this)
-            .setTitle("Pro Video Player")
+            .setTitle("Akplayer")
             .setMessage("""
                 Version: 1.0.0
                 
@@ -197,6 +215,7 @@ class SettingsActivity : AppCompatActivity() {
                 • Multiple audio tracks
                 • Network streaming
                 • Picture-in-Picture mode
+                • Multiple Themes
                 
                 Powered by ExoPlayer
             """.trimIndent())

@@ -38,6 +38,9 @@ class MainActivity : AppCompatActivity() {
     private var searchQuery: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Apply saved theme before calling super.onCreate and setContentView
+        applyAppTheme()
+        
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -48,6 +51,20 @@ class MainActivity : AppCompatActivity() {
         setupFab()
         
         checkPermissionAndLoadVideos()
+    }
+    
+    private fun applyAppTheme() {
+        val prefs = getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
+        val themeMode = prefs.getInt("theme_mode", 0)
+        
+        when (themeMode) {
+            0 -> { /* System Default - no override */ }
+            1 -> setTheme(R.style.Theme_ProVideoPlayer_Light)
+            2 -> setTheme(R.style.Theme_ProVideoPlayer)  // Dark
+            3 -> setTheme(R.style.Theme_ProVideoPlayer_Amoled)
+            4 -> setTheme(R.style.Theme_ProVideoPlayer_Blue)
+            5 -> setTheme(R.style.Theme_ProVideoPlayer_Pink)
+        }
     }
 
     private fun setupToolbar() {

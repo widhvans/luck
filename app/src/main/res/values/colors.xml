@@ -13,6 +13,24 @@
     <color name="surface_dark">#FF1E1E1E</color>
     <color name="surface_dark_elevated">#FF2D2D2D</color>
     
+    <!-- AMOLED Black Theme Colors -->
+    <color name="background_amoled">#FF000000</color>
+    <color name="surface_amoled">#FF0A0A0A</color>
+    
+    <!-- Blue Ocean Theme Colors -->
+    <color name="blue_primary">#FF1565C0</color>
+    <color name="blue_primary_variant">#FF0D47A1</color>
+    <color name="blue_secondary">#FF26C6DA</color>
+    <color name="background_blue">#FF0D1B2A</color>
+    <color name="surface_blue">#FF1B2838</color>
+    
+    <!-- Pink Rose Theme Colors -->
+    <color name="pink_primary">#FFE91E63</color>
+    <color name="pink_primary_variant">#FFC2185B</color>
+    <color name="pink_secondary">#FFFF4081</color>
+    <color name="background_pink">#FF1A1218</color>
+    <color name="surface_pink">#FF2D1F2A</color>
+    
     <!-- Text Colors -->
     <color name="text_primary">#FFFFFFFF</color>
     <color name="text_secondary">#B3FFFFFF</color>
@@ -26,3 +44,4 @@
     <color name="player_control_bg">#80000000</color>
     <color name="player_seekbar">#FF6200EE</color>
 </resources>
+
