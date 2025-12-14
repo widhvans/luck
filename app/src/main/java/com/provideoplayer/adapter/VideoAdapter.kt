@@ -52,13 +52,28 @@ class VideoAdapter(
             }
 
             // Load thumbnail with Glide
-            Glide.with(itemView.context)
-                .load(video.uri)
-                .diskCacheStrategy(DiskCacheStrategy.ALL)
-                .centerCrop()
-                .placeholder(R.drawable.ic_video_placeholder)
-                .error(R.drawable.ic_video_placeholder)
-                .into(thumbnail)
+            // Check if it's an audio file
+            val isAudio = video.mimeType.startsWith("audio") ||
+                         video.path.endsWith(".mp3", true) ||
+                         video.path.endsWith(".m4a", true) ||
+                         video.path.endsWith(".flac", true) ||
+                         video.path.endsWith(".wav", true) ||
+                         video.path.endsWith(".aac", true)
+            
+            if (isAudio) {
+                // Use CD icon for audio files
+                thumbnail.setImageResource(R.drawable.ic_audio_cd)
+                thumbnail.scaleType = android.widget.ImageView.ScaleType.CENTER_INSIDE
+            } else {
+                // Load video thumbnail with Glide
+                Glide.with(itemView.context)
+                    .load(video.uri)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .centerCrop()
+                    .placeholder(R.drawable.ic_video_placeholder)
+                    .error(R.drawable.ic_video_placeholder)
+                    .into(thumbnail)
+            }
 
             itemView.setOnClickListener {
                 onVideoClick(video, position)

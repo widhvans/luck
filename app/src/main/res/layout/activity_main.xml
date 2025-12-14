@@ -150,16 +150,16 @@
 
     </LinearLayout>
 
-    <!-- FAB for Network Stream -->
+    <!-- FAB for Continue Last Video -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabNetworkStream"
+        android:id="@+id/fabContinueVideo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="80dp"
-        android:contentDescription="Network Stream"
-        android:src="@drawable/ic_network"
+        android:contentDescription="Continue Video"
+        android:src="@drawable/ic_play"
         app:backgroundTint="?colorPrimary"
         app:tint="@color/white" />
 

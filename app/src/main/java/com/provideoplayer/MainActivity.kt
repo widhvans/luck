@@ -110,8 +110,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupFab() {
-        binding.fabNetworkStream.setOnClickListener {
-            openNetworkStreamDialog()
+        binding.fabContinueVideo.setOnClickListener {
+            continueLastVideo()
         }
     }
     
@@ -284,8 +284,8 @@ class MainActivity : AppCompatActivity() {
                 openSettings()
                 true
             }
-            R.id.action_continue -> {
-                continueLastVideo()
+            R.id.action_history -> {
+                openHistory()
                 true
             }
             else -> super.onOptionsItemSelected(item)
@@ -614,6 +614,46 @@ class MainActivity : AppCompatActivity() {
             binding.emptyView.visibility = View.GONE
             binding.recyclerView.visibility = View.VISIBLE
             folderAdapter.submitList(allFolders)
+        }
+    }
+    
+    private fun openHistory() {
+        val prefs = getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
+        val historyJson = prefs.getString("video_history", "[]")
+        
+        try {
+            val historyUris = org.json.JSONArray(historyJson)
+            
+            if (historyUris.length() == 0) {
+                Toast.makeText(this, "No history yet. Start watching!", Toast.LENGTH_SHORT).show()
+                return
+            }
+            
+            // Build list of titles
+            val historyItems = mutableListOf<Pair<String, String>>()
+            for (i in historyUris.length() - 1 downTo 0) {
+                val uri = historyUris.getString(i)
+                val video = allVideos.find { it.uri.toString() == uri }
+                val title = video?.title ?: uri.substringAfterLast("/")
+                historyItems.add(title to uri)
+            }
+            
+            val titles = historyItems.map { it.first }.toTypedArray()
+            
+            MaterialAlertDialogBuilder(this)
+                .setTitle("Recently Watched")
+                .setItems(titles) { _, which ->
+                    val (title, uri) = historyItems[which]
+                    val intent = Intent(this, PlayerActivity::class.java).apply {
+                        putExtra(PlayerActivity.EXTRA_VIDEO_URI, uri)
+                        putExtra(PlayerActivity.EXTRA_VIDEO_TITLE, title)
+                    }
+                    startActivity(intent)
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "No history yet. Start watching!", Toast.LENGTH_SHORT).show()
         }
     }
 
