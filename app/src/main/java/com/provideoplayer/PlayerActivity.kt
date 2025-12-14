@@ -827,7 +827,9 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun adjustBrightness(delta: Float) {
-        currentBrightness = (currentBrightness + delta).coerceIn(0.01f, 1f)
+        // Reduced sensitivity factor (0.3) for smoother, slower adjustments
+        val sensitivity = 0.3f
+        currentBrightness = (currentBrightness + delta * sensitivity).coerceIn(0.01f, 1f)
         
         val layoutParams = window.attributes
         layoutParams.screenBrightness = currentBrightness
@@ -837,7 +839,10 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun adjustVolume(delta: Float) {
-        val newVolume = (currentVolume + delta * maxVolume).toInt().coerceIn(0, maxVolume)
+        // Reduced sensitivity factor (0.3) for smoother, slower adjustments
+        val sensitivity = 0.3f
+        val volumeChange = (delta * maxVolume * sensitivity).toInt()
+        val newVolume = (currentVolume + volumeChange).coerceIn(0, maxVolume)
         currentVolume = newVolume
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0)
         
@@ -984,15 +989,19 @@ class PlayerActivity : AppCompatActivity() {
             .setTitle("Subtitles")
             .setItems(names) { dialog, which ->
                 if (which == 0) {
-                    // Disable subtitles
+                    // Disable subtitles - use setTrackTypeDisabled for correct disable
                     trackSelector.setParameters(
                         trackSelector.buildUponParameters()
-                            .setRendererDisabled(C.TRACK_TYPE_TEXT, true)
+                            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+                            .build()
                     )
                 } else {
+                    // Enable subtitles and select the specific track
+                    val selectedIndex = textTracks[which].second
                     trackSelector.setParameters(
                         trackSelector.buildUponParameters()
-                            .setRendererDisabled(C.TRACK_TYPE_TEXT, false)
+                            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+                            .build()
                     )
                 }
                 dialog.dismiss()
@@ -1053,11 +1062,71 @@ class PlayerActivity : AppCompatActivity() {
             .setTitle("Video Filter")
             .setSingleChoiceItems(names, currentIndex) { dialog, which ->
                 currentFilter = filters[which]
-                Toast.makeText(this, "Filter: ${currentFilter.displayName}", Toast.LENGTH_SHORT).show()
-                // Note: Actual filter implementation requires custom shader/surface
+                applyVideoFilter(currentFilter)
                 dialog.dismiss()
             }
             .show()
+    }
+    
+    private fun applyVideoFilter(filter: VideoFilter) {
+        val surfaceView = binding.playerView.videoSurfaceView
+        
+        val colorMatrix = when (filter) {
+            VideoFilter.NONE -> null
+            VideoFilter.GRAYSCALE -> android.graphics.ColorMatrix().apply { setSaturation(0f) }
+            VideoFilter.SEPIA -> android.graphics.ColorMatrix(floatArrayOf(
+                0.393f, 0.769f, 0.189f, 0f, 0f,
+                0.349f, 0.686f, 0.168f, 0f, 0f,
+                0.272f, 0.534f, 0.131f, 0f, 0f,
+                0f, 0f, 0f, 1f, 0f
+            ))
+            VideoFilter.NEGATIVE -> android.graphics.ColorMatrix(floatArrayOf(
+                -1f, 0f, 0f, 0f, 255f,
+                0f, -1f, 0f, 0f, 255f,
+                0f, 0f, -1f, 0f, 255f,
+                0f, 0f, 0f, 1f, 0f
+            ))
+            VideoFilter.BRIGHTNESS -> android.graphics.ColorMatrix(floatArrayOf(
+                1.2f, 0f, 0f, 0f, 30f,
+                0f, 1.2f, 0f, 0f, 30f,
+                0f, 0f, 1.2f, 0f, 30f,
+                0f, 0f, 0f, 1f, 0f
+            ))
+            VideoFilter.CONTRAST -> android.graphics.ColorMatrix(floatArrayOf(
+                1.5f, 0f, 0f, 0f, -50f,
+                0f, 1.5f, 0f, 0f, -50f,
+                0f, 0f, 1.5f, 0f, -50f,
+                0f, 0f, 0f, 1f, 0f
+            ))
+            VideoFilter.SATURATION -> android.graphics.ColorMatrix().apply { setSaturation(1.5f) }
+            VideoFilter.SHARPEN -> android.graphics.ColorMatrix().apply { setSaturation(1.2f) } // Approximation
+            VideoFilter.VIGNETTE -> android.graphics.ColorMatrix(floatArrayOf(
+                0.9f, 0f, 0f, 0f, 0f,
+                0f, 0.9f, 0f, 0f, 0f,
+                0f, 0f, 0.9f, 0f, 0f,
+                0f, 0f, 0f, 1f, 0f
+            ))
+            VideoFilter.WARM -> android.graphics.ColorMatrix(floatArrayOf(
+                1.2f, 0f, 0f, 0f, 10f,
+                0f, 1.0f, 0f, 0f, 0f,
+                0f, 0f, 0.8f, 0f, -10f,
+                0f, 0f, 0f, 1f, 0f
+            ))
+            VideoFilter.COOL -> android.graphics.ColorMatrix(floatArrayOf(
+                0.8f, 0f, 0f, 0f, -10f,
+                0f, 1.0f, 0f, 0f, 0f,
+                0f, 0f, 1.2f, 0f, 10f,
+                0f, 0f, 0f, 1f, 0f
+            ))
+        }
+        
+        if (colorMatrix != null) {
+            surfaceView?.setColorFilter(android.graphics.ColorMatrixColorFilter(colorMatrix))
+            Toast.makeText(this, "Filter: ${filter.displayName}", Toast.LENGTH_SHORT).show()
+        } else {
+            surfaceView?.setColorFilter(null)
+            Toast.makeText(this, "Filter removed", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun toggleOrientation() {
