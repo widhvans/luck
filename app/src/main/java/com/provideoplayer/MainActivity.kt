@@ -36,6 +36,7 @@ class MainActivity : AppCompatActivity() {
     private var currentFolderId: Long? = null
     private var isShowingFolders = true
     private var searchQuery: String = ""
+    private var currentTab = 0  // 0=Videos, 1=Audio, 2=Browse, 3=Playlist
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Apply saved theme before calling super.onCreate and setContentView
@@ -48,6 +49,7 @@ class MainActivity : AppCompatActivity() {
         setupToolbar()
         setupRecyclerView()
         setupSwipeRefresh()
+        setupBottomNavigation()
         setupFab()
         
         checkPermissionAndLoadVideos()
@@ -111,6 +113,70 @@ class MainActivity : AppCompatActivity() {
         binding.fabNetworkStream.setOnClickListener {
             openNetworkStreamDialog()
         }
+    }
+    
+    private fun setupBottomNavigation() {
+        binding.bottomNavigation.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_videos -> {
+                    currentTab = 0
+                    supportActionBar?.title = "Videos"
+                    loadVideos()
+                    true
+                }
+                R.id.nav_audio -> {
+                    currentTab = 1
+                    supportActionBar?.title = "Audio"
+                    showAudioFiles()
+                    true
+                }
+                R.id.nav_browse -> {
+                    currentTab = 2
+                    supportActionBar?.title = "Browse"
+                    showFolders()
+                    true
+                }
+                R.id.nav_playlist -> {
+                    currentTab = 3
+                    supportActionBar?.title = "Playlist"
+                    showPlaylists()
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+    
+    private fun showAudioFiles() {
+        // Filter to show only audio content
+        isShowingFolders = false
+        binding.recyclerView.adapter = videoAdapter
+        binding.recyclerView.layoutManager = GridLayoutManager(this, 2)
+        
+        val audioFiles = allVideos.filter { 
+            it.mimeType.startsWith("audio") || 
+            it.path.endsWith(".mp3", true) || 
+            it.path.endsWith(".m4a", true) ||
+            it.path.endsWith(".aac", true) ||
+            it.path.endsWith(".wav", true) ||
+            it.path.endsWith(".flac", true)
+        }
+        
+        if (audioFiles.isEmpty()) {
+            binding.emptyView.visibility = View.VISIBLE
+            binding.emptyText.text = "No audio files found"
+        } else {
+            binding.emptyView.visibility = View.GONE
+            videoAdapter.submitList(audioFiles)
+        }
+    }
+    
+    private fun showPlaylists() {
+        // Show empty state for now - playlists coming soon
+        isShowingFolders = false
+        binding.emptyView.visibility = View.VISIBLE
+        binding.emptyText.text = "Playlists - Coming Soon!"
+        videoAdapter.submitList(emptyList())
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -177,6 +243,10 @@ class MainActivity : AppCompatActivity() {
             }
             R.id.action_settings -> {
                 openSettings()
+                true
+            }
+            R.id.action_history -> {
+                openHistory()
                 true
             }
             else -> super.onOptionsItemSelected(item)
@@ -426,6 +496,31 @@ class MainActivity : AppCompatActivity() {
     private fun openSettings() {
         val intent = Intent(this, SettingsActivity::class.java)
         startActivity(intent)
+    }
+    
+    private fun openHistory() {
+        val prefs = getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
+        val lastUri = prefs.getString("last_video_uri", null)
+        val lastTitle = prefs.getString("last_video_title", "Last Video")
+        val lastPosition = prefs.getLong("last_video_position", 0)
+        
+        if (lastUri.isNullOrEmpty()) {
+            Toast.makeText(this, "No history yet. Start watching a video!", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Continue Watching")
+            .setMessage("Resume \"$lastTitle\"?")
+            .setPositiveButton("Resume") { _, _ ->
+                val intent = Intent(this, PlayerActivity::class.java).apply {
+                    putExtra(PlayerActivity.EXTRA_VIDEO_URI, lastUri)
+                    putExtra(PlayerActivity.EXTRA_VIDEO_TITLE, lastTitle)
+                }
+                startActivity(intent)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     override fun onResume() {

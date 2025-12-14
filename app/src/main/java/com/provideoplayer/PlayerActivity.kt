@@ -1256,8 +1256,24 @@ class PlayerActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         if (!isPipMode) {
+            saveToHistory()
             player?.playWhenReady = false
         }
+    }
+    
+    private fun saveToHistory() {
+        if (playlist.isEmpty()) return
+        
+        val currentUri = playlist.getOrNull(currentIndex) ?: return
+        val currentTitle = playlistTitles.getOrNull(currentIndex) ?: "Video"
+        val position = player?.currentPosition ?: 0
+        
+        val prefs = getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
+        prefs.edit()
+            .putString("last_video_uri", currentUri)
+            .putString("last_video_title", currentTitle)
+            .putLong("last_video_position", position)
+            .apply()
     }
 
     override fun onStop() {
