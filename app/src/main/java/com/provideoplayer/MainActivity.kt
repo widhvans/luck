@@ -572,12 +572,15 @@ class MainActivity : AppCompatActivity() {
         binding.recyclerView.adapter = videoAdapter
         binding.recyclerView.layoutManager = GridLayoutManager(this, 2)
         
-        // Load audio files from this folder
+        // Load audio files from this folder only (not subdirectories)
         binding.progressBar.visibility = View.VISIBLE
         lifecycleScope.launch {
             try {
                 val allAudio = VideoScanner.getAllAudio(this@MainActivity)
-                val folderAudio = allAudio.filter { it.path.startsWith(folderPath) }
+                // Match exact folder path, not subdirectories
+                val folderAudio = allAudio.filter { 
+                    it.path.substringBeforeLast("/") == folderPath 
+                }
                 binding.progressBar.visibility = View.GONE
                 
                 videoAdapter.submitList(folderAudio)
