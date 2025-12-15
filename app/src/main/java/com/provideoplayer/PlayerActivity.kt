@@ -2032,30 +2032,25 @@ class PlayerActivity : AppCompatActivity() {
         // Show tooltip pointing to audio track button
         showControls()  // Make sure controls are visible
         
-        // Get button position on screen
-        val buttonLocation = IntArray(2)
-        binding.btnAudioTrack.getLocationOnScreen(buttonLocation)
-        val buttonCenterX = buttonLocation[0] + binding.btnAudioTrack.width / 2
-        val buttonCenterY = buttonLocation[1] + binding.btnAudioTrack.height / 2
-        
-        // Create main container that will hold arrow + tooltip
+        // Create main container (vertical: arrow on top, tooltip below)
         val container = android.widget.LinearLayout(this).apply {
-            orientation = android.widget.LinearLayout.HORIZONTAL
-            gravity = android.view.Gravity.CENTER_VERTICAL
+            orientation = android.widget.LinearLayout.VERTICAL
+            gravity = android.view.Gravity.CENTER_HORIZONTAL
         }
         
-        // Left arrow connector pointing to button (◀)
-        val arrowConnector = android.widget.TextView(this).apply {
-            text = "◀"
+        // Up arrow pointing to button (▲)
+        val arrowUp = android.widget.TextView(this).apply {
+            text = "▲"
             setTextColor(android.graphics.Color.parseColor("#4CAF50"))
-            textSize = 24f
+            textSize = 20f
+            gravity = android.view.Gravity.CENTER
             layoutParams = android.widget.LinearLayout.LayoutParams(
                 android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
                 android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
             )
         }
         
-        // Tooltip box
+        // Tooltip box below arrow
         val tooltipBox = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.HORIZONTAL
             setPadding(28, 18, 28, 18)
@@ -2088,7 +2083,7 @@ class PlayerActivity : AppCompatActivity() {
         tooltipBox.addView(iconInTooltip)
         tooltipBox.addView(textInstruction)
         
-        container.addView(arrowConnector)
+        container.addView(arrowUp)
         container.addView(tooltipBox)
         
         // Create popup window
@@ -2101,21 +2096,21 @@ class PlayerActivity : AppCompatActivity() {
         popup.elevation = 20f
         popup.setBackgroundDrawable(null)
         
-        // Start invisible and translated left (hidden behind button)
+        // Start invisible and translated up (hidden behind button)
         container.alpha = 0f
-        container.translationX = -200f
+        container.translationY = -80f
         
-        // Show popup and animate sliding out from button
+        // Show popup and animate sliding down from button
         binding.btnAudioTrack.postDelayed({
             try {
-                // Position popup to the right of button
-                popup.showAsDropDown(binding.btnAudioTrack, binding.btnAudioTrack.width - 10, -binding.btnAudioTrack.height / 2 - 30)
+                // Position popup below button, centered
+                popup.showAsDropDown(binding.btnAudioTrack, -60, 0)
                 
-                // Animate sliding out from the icon
+                // Animate sliding down from the icon
                 container.animate()
                     .alpha(1f)
-                    .translationX(0f)
-                    .setDuration(350)
+                    .translationY(0f)
+                    .setDuration(300)
                     .setInterpolator(android.view.animation.DecelerateInterpolator())
                     .start()
                 
@@ -2123,18 +2118,18 @@ class PlayerActivity : AppCompatActivity() {
                 container.setOnClickListener {
                     container.animate()
                         .alpha(0f)
-                        .translationX(-100f)
+                        .translationY(-60f)
                         .setDuration(200)
                         .withEndAction { popup.dismiss() }
                         .start()
                 }
                 
-                // Auto-dismiss after 4 seconds with slide back animation
+                // Auto-dismiss after 4 seconds with slide up animation
                 binding.btnAudioTrack.postDelayed({
                     if (popup.isShowing) {
                         container.animate()
                             .alpha(0f)
-                            .translationX(-150f)
+                            .translationY(-80f)
                             .setDuration(250)
                             .withEndAction { popup.dismiss() }
                             .start()
@@ -2145,6 +2140,7 @@ class PlayerActivity : AppCompatActivity() {
             }
         }, 500)
     }
+
 
     private var loadingAnimation: android.view.animation.Animation? = null
     
