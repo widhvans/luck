@@ -1178,7 +1178,7 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         // Save scroll position when leaving activity
-        savedScrollPosition = binding.recyclerView.layoutManager?.onSaveInstanceState()
+        saveCurrentTabScrollPosition()
     }
 
     enum class SortType {
