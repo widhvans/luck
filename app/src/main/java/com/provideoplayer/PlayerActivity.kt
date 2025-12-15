@@ -140,6 +140,7 @@ class PlayerActivity : AppCompatActivity() {
     
     // PiP
     private var isPipMode = false
+    private var wasInPipMode = false  // Track if we were in PiP before it was closed
     
     // Audio playback visualization
     private var isAudioFile = false
@@ -1804,23 +1805,34 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
-        isPipMode = isInPictureInPictureMode
         
+        // Track if we're entering or exiting PiP
         if (isInPictureInPictureMode) {
+            wasInPipMode = true
+            isPipMode = true
             // Hide all UI in PiP
             binding.controlsContainer.visibility = View.GONE
             binding.topBar.visibility = View.GONE
             binding.bottomBar.visibility = View.GONE
             binding.gestureOverlay.visibility = View.GONE
         } else {
-            // Exiting PiP mode
-            if (isFinishing) {
-                // User closed PiP window - stop and release player
+            // Exiting PiP mode - user closed PiP window
+            // When PiP is closed by user, we need to stop the player completely
+            // because the audio would otherwise continue playing
+            if (wasInPipMode) {
+                wasInPipMode = false
+                isPipMode = false
+                
+                // Stop player immediately when PiP is dismissed by user
                 player?.stop()
                 player?.release()
                 player = null
-                android.util.Log.d("PlayerActivity", "PiP closed - player stopped")
+                android.util.Log.d("PlayerActivity", "PiP closed by user - player stopped and released")
+                
+                // Finish the activity since PiP was closed
+                finish()
             } else {
+                isPipMode = false
                 binding.gestureOverlay.visibility = View.VISIBLE
                 showControls()
             }
@@ -2020,50 +2032,115 @@ class PlayerActivity : AppCompatActivity() {
         // Show tooltip pointing to audio track button
         showControls()  // Make sure controls are visible
         
-        // Create professional tooltip with arrow pointing up
-        val tooltipLayout = android.widget.LinearLayout(this).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(32, 24, 32, 24)
-            setBackgroundResource(android.R.drawable.toast_frame)
-            background.setTint(android.graphics.Color.parseColor("#DD000000"))
-            gravity = android.view.Gravity.CENTER_HORIZONTAL
+        // Create professional tooltip container
+        val tooltipContainer = android.widget.FrameLayout(this).apply {
+            layoutParams = android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
+            )
         }
         
-        // Arrow pointing up to the button
+        // Main tooltip layout with message
+        val tooltipLayout = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            setPadding(24, 16, 24, 16)
+            setBackgroundResource(android.R.drawable.toast_frame)
+            background.setTint(android.graphics.Color.parseColor("#E0000000"))
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            
+            // Set a custom rounded background
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(android.graphics.Color.parseColor("#E0000000"))
+                cornerRadius = 16f
+            }
+        }
+        
+        // Audio track icon copy (smaller version)
+        val iconView = android.widget.ImageView(this).apply {
+            setImageResource(R.drawable.ic_audio_track)
+            setColorFilter(android.graphics.Color.parseColor("#4CAF50"))  // Green accent
+            layoutParams = android.widget.LinearLayout.LayoutParams(44, 44).apply {
+                marginEnd = 12
+            }
+        }
+        
+        // Arrow from icon pointing right to text
         val arrowView = android.widget.ImageView(this).apply {
-            setImageResource(R.drawable.ic_arrow_up)
-            setColorFilter(android.graphics.Color.WHITE)
-            layoutParams = android.widget.LinearLayout.LayoutParams(48, 48).apply {
-                bottomMargin = 8
+            setImageResource(R.drawable.ic_arrow_right)
+            setColorFilter(android.graphics.Color.parseColor("#AAAAAA"))  // Light gray
+            layoutParams = android.widget.LinearLayout.LayoutParams(24, 24).apply {
+                marginEnd = 12
+                gravity = android.view.Gravity.CENTER_VERTICAL
             }
         }
         
         // Text message
         val textView = android.widget.TextView(this).apply {
-            text = "Multiple audio tracks available!\nTap to change language"
+            text = "Multiple audio tracks!\nTap icon to change"
             setTextColor(android.graphics.Color.WHITE)
-            textSize = 13f
-            gravity = android.view.Gravity.CENTER
+            textSize = 12f
+            setLineSpacing(4f, 1f)
         }
         
+        tooltipLayout.addView(iconView)
         tooltipLayout.addView(arrowView)
         tooltipLayout.addView(textView)
         
+        // Add an up-pointing triangle at top center to point to the button
+        val triangleView = android.view.View(this).apply {
+            layoutParams = android.widget.FrameLayout.LayoutParams(24, 16).apply {
+                gravity = android.view.Gravity.TOP or android.view.Gravity.CENTER_HORIZONTAL
+                topMargin = 0
+            }
+            background = object : android.graphics.drawable.Drawable() {
+                private val paint = android.graphics.Paint().apply {
+                    color = android.graphics.Color.parseColor("#E0000000")
+                    isAntiAlias = true
+                    style = android.graphics.Paint.Style.FILL
+                }
+                
+                override fun draw(canvas: android.graphics.Canvas) {
+                    val path = android.graphics.Path().apply {
+                        moveTo(bounds.width() / 2f, 0f)  // Top center
+                        lineTo(0f, bounds.height().toFloat())  // Bottom left
+                        lineTo(bounds.width().toFloat(), bounds.height().toFloat())  // Bottom right
+                        close()
+                    }
+                    canvas.drawPath(path, paint)
+                }
+                
+                override fun setAlpha(alpha: Int) { paint.alpha = alpha }
+                override fun setColorFilter(colorFilter: android.graphics.ColorFilter?) { paint.colorFilter = colorFilter }
+                override fun getOpacity(): Int = android.graphics.PixelFormat.TRANSLUCENT
+            }
+        }
+        
+        // Container for proper positioning with triangle
+        val mainContainer = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            gravity = android.view.Gravity.CENTER_HORIZONTAL
+        }
+        
+        mainContainer.addView(triangleView)
+        mainContainer.addView(tooltipLayout)
+        
         val popup = android.widget.PopupWindow(
-            tooltipLayout,
+            mainContainer,
             android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
             android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
             true
         )
         popup.elevation = 16f
+        popup.setBackgroundDrawable(null)  // Remove default background
         
         // Show popup below audio track button with slight delay to ensure button is visible
         binding.btnAudioTrack.postDelayed({
             try {
-                popup.showAsDropDown(binding.btnAudioTrack, -80, 10)
+                // Calculate offset to center the popup under the button
+                popup.showAsDropDown(binding.btnAudioTrack, -60, 8)
                 
                 // Dismiss on tap anywhere
-                tooltipLayout.setOnClickListener {
+                mainContainer.setOnClickListener {
                     popup.dismiss()
                 }
                 
