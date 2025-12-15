@@ -1999,7 +1999,7 @@ class PlayerActivity : AppCompatActivity() {
         
         // Create tooltip using a PopupWindow
         val tooltipView = android.widget.TextView(this).apply {
-            text = "🎵 Multiple audio tracks available!\nTap here to change language"
+            text = "⬆️ Multiple audio tracks!\nTap the button above to change language"
             setTextColor(android.graphics.Color.WHITE)
             textSize = 14f
             setPadding(32, 24, 32, 24)
