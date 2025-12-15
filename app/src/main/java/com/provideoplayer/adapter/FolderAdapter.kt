@@ -18,6 +18,9 @@ class FolderAdapter(
     private val onFolderClick: (FolderItem) -> Unit
 ) : ListAdapter<FolderItem, FolderAdapter.FolderViewHolder>(FolderDiffCallback()) {
 
+    // Media type: 0=all/videos, 1=videos, 2=audio
+    var mediaType: Int = 0
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FolderViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_folder, parent, false)
@@ -35,8 +38,19 @@ class FolderAdapter(
 
         fun bind(folder: FolderItem) {
             name.text = folder.name
-            count.text = "${folder.videoCount} videos"
-            icon.setImageResource(R.drawable.ic_folder)
+            
+            // Show count with appropriate label based on media type
+            val label = when (mediaType) {
+                2 -> "audio"
+                else -> "videos"
+            }
+            count.text = "${folder.videoCount} $label"
+            
+            // Use appropriate icon
+            icon.setImageResource(when (mediaType) {
+                2 -> R.drawable.ic_audio
+                else -> R.drawable.ic_folder
+            })
 
             itemView.setOnClickListener {
                 onFolderClick(folder)
@@ -50,7 +64,8 @@ class FolderAdapter(
         }
 
         override fun areContentsTheSame(oldItem: FolderItem, newItem: FolderItem): Boolean {
-            return oldItem == newItem
+            // Always return false to force rebind when filter changes
+            return false
         }
     }
 }

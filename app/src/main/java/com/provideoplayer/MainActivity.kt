@@ -126,23 +126,25 @@ class MainActivity : AppCompatActivity() {
         binding.btnFilterVideo.setOnClickListener {
             browseFilter = 1  // Select video filter
             updateFilterButtonStyles()
-            // Refresh folder list or folder contents
-            if (currentFolderId != null) {
-                showVideosInFolder(currentFolderId!!)
-            } else {
-                showBrowseMedia()  // Refresh folder list with new filter
-            }
+            
+            // When filter changes, go back to folder list
+            currentFolderId = null
+            currentFolderPath = null
+            supportActionBar?.setDisplayHomeAsUpEnabled(false)
+            supportActionBar?.title = "Browse"
+            showBrowseMedia()
         }
         
         binding.btnFilterAudio.setOnClickListener {
             browseFilter = 2  // Select audio filter
             updateFilterButtonStyles()
-            // Refresh folder list or folder contents
-            if (currentFolderId != null) {
-                showVideosInFolder(currentFolderId!!)
-            } else {
-                showBrowseMedia()  // Refresh folder list with new filter
-            }
+            
+            // When filter changes, go back to folder list
+            currentFolderId = null
+            currentFolderPath = null
+            supportActionBar?.setDisplayHomeAsUpEnabled(false)
+            supportActionBar?.title = "Browse"
+            showBrowseMedia()
         }
     }
     
@@ -180,6 +182,9 @@ class MainActivity : AppCompatActivity() {
                     currentTab = 0
                     supportActionBar?.title = "Videos"
                     binding.filterBar.visibility = View.GONE
+                    binding.swipeRefresh.setPadding(0, 0, 0, 0)  // Reset padding
+                    currentFolderId = null
+                    currentFolderPath = null
                     loadVideos()
                     true
                 }
@@ -187,12 +192,18 @@ class MainActivity : AppCompatActivity() {
                     currentTab = 1
                     supportActionBar?.title = "Audio"
                     binding.filterBar.visibility = View.GONE
+                    binding.swipeRefresh.setPadding(0, 0, 0, 0)  // Reset padding
+                    currentFolderId = null
+                    currentFolderPath = null
                     showAudioFiles()
                     true
                 }
                 R.id.nav_browse -> {
                     currentTab = 2
                     supportActionBar?.title = "Browse"
+                    supportActionBar?.setDisplayHomeAsUpEnabled(false)
+                    currentFolderId = null
+                    currentFolderPath = null
                     showBrowseMedia()
                     true
                 }
@@ -200,6 +211,9 @@ class MainActivity : AppCompatActivity() {
                     currentTab = 3
                     supportActionBar?.title = "Playlist"
                     binding.filterBar.visibility = View.GONE
+                    binding.swipeRefresh.setPadding(0, 0, 0, 0)  // Reset padding
+                    currentFolderId = null
+                    currentFolderPath = null
                     showPlaylists()
                     true
                 }
@@ -886,6 +900,8 @@ class MainActivity : AppCompatActivity() {
         } else {
             binding.emptyView.visibility = View.GONE
             binding.recyclerView.visibility = View.VISIBLE
+            // Set media type for proper label display
+            folderAdapter.mediaType = browseFilter
             folderAdapter.submitList(filteredFolders.sortedByDescending { it.videoCount })
         }
     }
