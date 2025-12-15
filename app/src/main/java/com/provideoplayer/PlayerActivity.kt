@@ -1806,8 +1806,8 @@ class PlayerActivity : AppCompatActivity() {
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         
-        // Track if we're entering or exiting PiP
         if (isInPictureInPictureMode) {
+            // Entering PiP
             wasInPipMode = true
             isPipMode = true
             // Hide all UI in PiP
@@ -1816,25 +1816,25 @@ class PlayerActivity : AppCompatActivity() {
             binding.bottomBar.visibility = View.GONE
             binding.gestureOverlay.visibility = View.GONE
         } else {
-            // Exiting PiP mode - user closed PiP window
-            // When PiP is closed by user, we need to stop the player completely
-            // because the audio would otherwise continue playing
-            if (wasInPipMode) {
+            // Exiting PiP mode
+            isPipMode = false
+            
+            if (isFinishing) {
+                // User closed PiP by swiping away - stop player
                 wasInPipMode = false
-                isPipMode = false
-                
-                // Stop player immediately when PiP is dismissed by user
                 player?.stop()
                 player?.release()
                 player = null
-                android.util.Log.d("PlayerActivity", "PiP closed by user - player stopped and released")
-                
-                // Finish the activity since PiP was closed
-                finish()
+                android.util.Log.d("PlayerActivity", "PiP closed by user swipe - player stopped")
             } else {
-                isPipMode = false
+                // User tapped PiP to return to full screen - restore UI
+                wasInPipMode = false
                 binding.gestureOverlay.visibility = View.VISIBLE
+                binding.controlsContainer.visibility = View.VISIBLE
+                binding.topBar.visibility = View.VISIBLE
+                binding.bottomBar.visibility = View.VISIBLE
                 showControls()
+                android.util.Log.d("PlayerActivity", "PiP expanded to full screen")
             }
         }
     }
@@ -2083,17 +2083,18 @@ class PlayerActivity : AppCompatActivity() {
         tooltipView.addView(arrow)
         tooltipView.addView(card)
         
-        // Create PopupWindow
+        // Create PopupWindow - NOT focusable so controls remain touchable
         val popup = android.widget.PopupWindow(
             tooltipView,
             android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
             android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
-            true
+            false  // NOT focusable - allows touches to pass through to controls
         ).apply {
             elevation = 16f
             setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
             isOutsideTouchable = true
             isTouchable = true
+            isFocusable = false  // Allow controls behind to be touched
         }
         
         // Measure tooltip to calculate center offset
