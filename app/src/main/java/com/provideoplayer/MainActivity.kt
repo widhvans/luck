@@ -118,23 +118,25 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun setupFilterButtons() {
+        // Set default filter to Video (1)
+        browseFilter = 1
+        updateFilterButtonStyles()
+        
         binding.btnFilterVideo.setOnClickListener {
-            browseFilter = if (browseFilter == 1) 0 else 1  // Toggle video filter
+            browseFilter = 1  // Select video filter
             updateFilterButtonStyles()
+            // Only refresh if inside a folder
             if (currentFolderId != null) {
                 showVideosInFolder(currentFolderId!!)
-            } else {
-                showBrowseMedia()
             }
         }
         
         binding.btnFilterAudio.setOnClickListener {
-            browseFilter = if (browseFilter == 2) 0 else 2  // Toggle audio filter
+            browseFilter = 2  // Select audio filter
             updateFilterButtonStyles()
+            // Only refresh if inside a folder
             if (currentFolderId != null) {
                 showVideosInFolder(currentFolderId!!)
-            } else {
-                showBrowseMedia()
             }
         }
     }
@@ -207,31 +209,32 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun showAudioFiles() {
-        isShowingFolders = false
-        binding.recyclerView.adapter = videoAdapter
-        binding.recyclerView.layoutManager = GridLayoutManager(this, 2)
+        // Show folders containing audio files
+        isShowingFolders = true
+        binding.recyclerView.adapter = folderAdapter
+        binding.recyclerView.layoutManager = LinearLayoutManager(this)
         
-        // Scan audio files from MediaStore
+        // Scan audio folders from MediaStore
         binding.progressBar.visibility = View.VISIBLE
         lifecycleScope.launch {
             try {
-                val audioFiles = VideoScanner.getAllAudio(this@MainActivity)
+                val audioFolders = VideoScanner.getAllAudioFolders(this@MainActivity)
                 binding.progressBar.visibility = View.GONE
                 
-                if (audioFiles.isEmpty()) {
+                if (audioFolders.isEmpty()) {
                     binding.recyclerView.visibility = View.GONE
                     binding.emptyView.visibility = View.VISIBLE
-                    binding.emptyText.text = "No audio files found"
+                    binding.emptyText.text = "No audio folders found"
                 } else {
                     binding.emptyView.visibility = View.GONE
                     binding.recyclerView.visibility = View.VISIBLE
-                    videoAdapter.submitList(audioFiles)
+                    folderAdapter.submitList(audioFolders)
                 }
             } catch (e: Exception) {
                 binding.progressBar.visibility = View.GONE
                 binding.recyclerView.visibility = View.GONE
                 binding.emptyView.visibility = View.VISIBLE
-                binding.emptyText.text = "Error loading audio files"
+                binding.emptyText.text = "Error loading audio folders"
             }
         }
     }
@@ -364,13 +367,28 @@ class MainActivity : AppCompatActivity() {
                     showFolders()
                 }
             }
-            currentFolderId != null -> {
+            currentFolderId != null || currentFolderPath != null -> {
                 // Go back to folder view
                 currentFolderId = null
-                showFolders()
+                currentFolderPath = null
+                
+                when (currentTab) {
+                    0 -> showAllVideos()  // Videos tab
+                    1 -> showAudioFiles()  // Audio tab - show audio folders
+                    2 -> showBrowseMedia()  // Browse tab - show all folders
+                    3 -> showPlaylists()  // Playlist tab
+                    else -> showFolders()
+                }
+                
                 supportActionBar?.apply {
                     setDisplayHomeAsUpEnabled(false)
-                    title = getString(R.string.app_name)
+                    title = when (currentTab) {
+                        0 -> "Videos"
+                        1 -> "Audio"
+                        2 -> "Browse"
+                        3 -> "Playlist"
+                        else -> getString(R.string.app_name)
+                    }
                 }
             }
             else -> {
@@ -506,12 +524,52 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private var currentFolderPath: String? = null  // For audio folders
+    
     private fun openFolder(folder: FolderItem) {
         currentFolderId = folder.id
-        showVideosInFolder(folder.id)
+        currentFolderPath = folder.path
+        
+        if (currentTab == 1) {
+            // Audio tab - show audio files from folder path
+            showAudioInFolder(folder.path)
+        } else {
+            // Video/Browse tab - show videos by folder ID
+            showVideosInFolder(folder.id)
+        }
+        
         supportActionBar?.apply {
             setDisplayHomeAsUpEnabled(true)
             title = folder.name
+        }
+    }
+    
+    private fun showAudioInFolder(folderPath: String) {
+        isShowingFolders = false
+        binding.recyclerView.adapter = videoAdapter
+        binding.recyclerView.layoutManager = GridLayoutManager(this, 2)
+        
+        // Load audio files from this folder
+        binding.progressBar.visibility = View.VISIBLE
+        lifecycleScope.launch {
+            try {
+                val allAudio = VideoScanner.getAllAudio(this@MainActivity)
+                val folderAudio = allAudio.filter { it.path.startsWith(folderPath) }
+                binding.progressBar.visibility = View.GONE
+                
+                videoAdapter.submitList(folderAudio)
+                
+                if (folderAudio.isEmpty()) {
+                    binding.emptyView.visibility = View.VISIBLE
+                    binding.emptyText.text = "No audio files in this folder"
+                } else {
+                    binding.emptyView.visibility = View.GONE
+                }
+            } catch (e: Exception) {
+                binding.progressBar.visibility = View.GONE
+                binding.emptyView.visibility = View.VISIBLE
+                binding.emptyText.text = "Error loading audio files"
+            }
         }
     }
 

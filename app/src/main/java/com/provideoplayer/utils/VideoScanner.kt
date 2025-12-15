@@ -253,4 +253,56 @@ object VideoScanner {
         
         audioFiles
     }
+    
+    /**
+     * Get all folders containing audio files
+     */
+    suspend fun getAllAudioFolders(context: Context): List<FolderItem> = withContext(Dispatchers.IO) {
+        val folderMap = mutableMapOf<String, FolderItem>()
+        
+        val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        } else {
+            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+        }
+        
+        val projection = arrayOf(
+            MediaStore.Audio.Media._ID,
+            MediaStore.Audio.Media.DATA,
+            MediaStore.Audio.Media.ALBUM
+        )
+        
+        context.contentResolver.query(
+            collection,
+            projection,
+            null,
+            null,
+            null
+        )?.use { cursor ->
+            val dataColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
+            val albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
+            
+            while (cursor.moveToNext()) {
+                val path = cursor.getString(dataColumn) ?: ""
+                val album = cursor.getString(albumColumn) ?: "Unknown Album"
+                val folderPath = path.substringBeforeLast("/")
+                val folderName = folderPath.substringAfterLast("/")
+                
+                // Use folder path as unique key
+                if (folderMap.containsKey(folderPath)) {
+                    val existing = folderMap[folderPath]!!
+                    folderMap[folderPath] = existing.copy(videoCount = existing.videoCount + 1)
+                } else {
+                    folderMap[folderPath] = FolderItem(
+                        id = folderPath.hashCode().toLong(),
+                        name = if (folderName.isNotEmpty()) folderName else album,
+                        path = folderPath,
+                        videoCount = 1  // This represents audio count
+                    )
+                }
+            }
+        }
+        
+        folderMap.values.toList().sortedByDescending { it.videoCount }
+    }
 }

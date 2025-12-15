@@ -121,7 +121,8 @@ class VideoAdapter(
         }
 
         override fun areContentsTheSame(oldItem: VideoItem, newItem: VideoItem): Boolean {
-            return oldItem == newItem
+            // Always return false to force rebind - this ensures NEW tag updates after history changes
+            return false
         }
     }
 }
