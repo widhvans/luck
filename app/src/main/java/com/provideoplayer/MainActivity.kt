@@ -812,8 +812,8 @@ class MainActivity : AppCompatActivity() {
         val savedPosition = getSavedPlaybackPosition(video.uri.toString())
         
         val intent = Intent(this, PlayerActivity::class.java).apply {
-            // Completely destroy existing PlayerActivity (including PiP) and start fresh
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            // Close existing PlayerActivity if any, then start new one
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra(PlayerActivity.EXTRA_VIDEO_URI, video.uri.toString())
             putExtra(PlayerActivity.EXTRA_VIDEO_TITLE, video.title)
             putExtra(PlayerActivity.EXTRA_VIDEO_POSITION, videoIndex)
