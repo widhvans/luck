@@ -63,7 +63,7 @@
             android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:theme="@style/Theme.ProVideoPlayer.Player"
-            android:launchMode="singleTop"
+            android:launchMode="singleTask"
             android:supportsPictureInPicture="true"
             android:resizeableActivity="true">
             <intent-filter>

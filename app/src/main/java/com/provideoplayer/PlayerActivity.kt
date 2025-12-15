@@ -188,6 +188,35 @@ class PlayerActivity : AppCompatActivity() {
         // Hide system UI
         hideSystemUI()
     }
+    
+    override fun onNewIntent(newIntent: Intent?) {
+        super.onNewIntent(newIntent)
+        newIntent?.let { intentData ->
+            // If we're in PiP mode, exit PiP first
+            if (isPipMode && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                // Exit PiP mode by moving task to front
+                moveTaskToBack(false)
+            }
+            
+            // Update intent and reload video
+            intent = intentData
+            
+            // Stop current playback
+            player?.stop()
+            
+            // Re-parse intent with new data
+            parseIntent()
+            
+            // Reload playlist with new video
+            loadPlaylist()
+            
+            // Ensure UI is visible
+            binding.gestureOverlay.visibility = View.VISIBLE
+            showControls()
+            
+            android.util.Log.d("PlayerActivity", "onNewIntent: Loading new video while reusing activity")
+        }
+    }
 
     private fun parseIntent() {
         intent?.let { intentData ->
@@ -819,8 +848,19 @@ class PlayerActivity : AppCompatActivity() {
         
         override fun onTracksChanged(tracks: Tracks) {
             android.util.Log.d("PlayerActivity", "Tracks changed - groups: ${tracks.groups.size}")
+            
+            // Count audio tracks
+            var audioTrackCount = 0
             for (group in tracks.groups) {
                 android.util.Log.d("PlayerActivity", "Track type: ${group.type}, length: ${group.length}")
+                if (group.type == C.TRACK_TYPE_AUDIO) {
+                    audioTrackCount += group.length
+                }
+            }
+            
+            // Show onboarding if multiple audio tracks and never shown before
+            if (audioTrackCount > 1) {
+                showAudioTrackOnboardingIfNeeded()
             }
         }
         
@@ -1943,6 +1983,57 @@ class PlayerActivity : AppCompatActivity() {
             .apply()
         
         android.util.Log.d("PlayerActivity", "Saved position $position for URI: ${currentUri.take(50)}...")
+    }
+    
+    // Audio track onboarding - shows tooltip once when multiple audio tracks detected
+    private fun showAudioTrackOnboardingIfNeeded() {
+        val prefs = getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
+        val hasSeenOnboarding = prefs.getBoolean("audio_track_onboarding_shown", false)
+        
+        if (hasSeenOnboarding) return
+        
+        // Mark as shown so it only appears once
+        prefs.edit().putBoolean("audio_track_onboarding_shown", true).apply()
+        
+        // Show tooltip pointing to audio track button
+        showControls()  // Make sure controls are visible
+        
+        // Create tooltip using a PopupWindow
+        val tooltipView = android.widget.TextView(this).apply {
+            text = "🎵 Multiple audio tracks available!\nTap here to change language"
+            setTextColor(android.graphics.Color.WHITE)
+            textSize = 14f
+            setPadding(32, 24, 32, 24)
+            setBackgroundResource(android.R.drawable.toast_frame)
+            background.setTint(android.graphics.Color.parseColor("#CC000000"))
+        }
+        
+        val popup = android.widget.PopupWindow(
+            tooltipView,
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+            true
+        )
+        popup.elevation = 16f
+        
+        // Show popup below audio track button with slight delay to ensure button is visible
+        binding.btnAudioTrack.postDelayed({
+            try {
+                popup.showAsDropDown(binding.btnAudioTrack, -100, 10)
+                
+                // Dismiss on tap anywhere
+                tooltipView.setOnClickListener {
+                    popup.dismiss()
+                }
+                
+                // Auto-dismiss after 5 seconds
+                binding.btnAudioTrack.postDelayed({
+                    if (popup.isShowing) popup.dismiss()
+                }, 5000)
+            } catch (e: Exception) {
+                android.util.Log.e("PlayerActivity", "Failed to show audio tooltip", e)
+            }
+        }, 1000)
     }
     
     // Loading animation for buffering
