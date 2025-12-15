@@ -933,9 +933,11 @@ class PlayerActivity : AppCompatActivity() {
         binding.seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    val duration = player?.duration ?: 0
-                    if (duration > 0) {
-                        val position = (duration * progress / 100).toLong()
+                    val duration = player?.duration ?: C.TIME_UNSET
+                    // Check for valid duration (not TIME_UNSET and > 0)
+                    if (duration != C.TIME_UNSET && duration > 0) {
+                        // Use Long arithmetic to avoid overflow for large durations
+                        val position = (duration.toLong() * progress.toLong() / 100L)
                         binding.currentTime.text = formatTime(position)
                     }
                 }
@@ -944,18 +946,32 @@ class PlayerActivity : AppCompatActivity() {
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
                 isSeeking = true
                 stopProgressUpdates()
+                // Cancel any pending hide operations while seeking
+                hideHandler.removeCallbacksAndMessages(null)
             }
             
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
-                val duration = player?.duration ?: 0
+                val currentPlayer = player
+                if (currentPlayer == null) {
+                    isSeeking = false
+                    startProgressUpdates()
+                    return
+                }
+                
+                val duration = currentPlayer.duration
                 val progress = seekBar?.progress ?: 0
                 
-                if (duration > 0) {
-                    // Calculate target position and seek
-                    val position = (duration * progress / 100).toLong()
+                android.util.Log.d("PlayerActivity", "SeekBar: onStopTrackingTouch - progress: $progress, duration: $duration")
+                
+                // Check for valid duration (not TIME_UNSET and > 0)
+                if (duration != C.TIME_UNSET && duration > 0) {
+                    // Use Long arithmetic to avoid overflow for large durations
+                    val position = (duration.toLong() * progress.toLong() / 100L)
                     
-                    // Use seekTo with SEEK_MODE for smoother seeking
-                    player?.seekTo(position)
+                    android.util.Log.d("PlayerActivity", "SeekBar: Seeking to position: $position ms")
+                    
+                    // Perform the seek
+                    currentPlayer.seekTo(position)
                     
                     // Update UI immediately to show target position
                     binding.currentTime.text = formatTime(position)
@@ -964,8 +980,17 @@ class PlayerActivity : AppCompatActivity() {
                     progressHandler.postDelayed({
                         isSeeking = false
                         startProgressUpdates()
-                    }, 500)
+                    }, 300)
                 } else {
+                    android.util.Log.w("PlayerActivity", "SeekBar: Invalid duration, cannot seek. Duration: $duration")
+                    // For streams without known duration, try to seek anyway using buffered position
+                    val bufferedPosition = currentPlayer.bufferedPosition
+                    if (bufferedPosition > 0 && progress > 0) {
+                        // Estimate position based on buffered content
+                        val estimatedPosition = (bufferedPosition.toLong() * progress.toLong() / 100L)
+                        android.util.Log.d("PlayerActivity", "SeekBar: Attempting seek with buffered position: $estimatedPosition")
+                        currentPlayer.seekTo(estimatedPosition)
+                    }
                     isSeeking = false
                     startProgressUpdates()
                 }
@@ -1454,24 +1479,41 @@ class PlayerActivity : AppCompatActivity() {
         
         player?.let {
             val position = it.currentPosition
-            val duration = it.duration.takeIf { d -> d > 0 } ?: 0
+            val duration = it.duration
             
+            // Update current time
             binding.currentTime.text = formatTime(position)
-            binding.totalTime.text = formatTime(duration)
             
-            if (duration > 0) {
-                binding.seekBar.progress = (position * 100 / duration).toInt()
+            // Check for valid duration (not TIME_UNSET and > 0)
+            if (duration != C.TIME_UNSET && duration > 0) {
+                binding.totalTime.text = formatTime(duration)
+                // Use Long arithmetic to avoid overflow
+                binding.seekBar.progress = (position.toLong() * 100L / duration.toLong()).toInt()
+            } else {
+                // For streams with unknown duration, show buffered time as reference
+                val bufferedDuration = it.bufferedPosition
+                if (bufferedDuration > 0) {
+                    binding.totalTime.text = formatTime(bufferedDuration)
+                }
             }
         }
     }
 
     private fun updateDuration() {
         player?.let {
-            binding.totalTime.text = formatTime(it.duration)
+            val duration = it.duration
+            if (duration != C.TIME_UNSET && duration > 0) {
+                binding.totalTime.text = formatTime(duration)
+            }
         }
     }
 
     private fun formatTime(millis: Long): String {
+        // Handle invalid values
+        if (millis < 0 || millis == C.TIME_UNSET) {
+            return "00:00"
+        }
+        
         val hours = millis / 3600000
         val minutes = (millis % 3600000) / 60000
         val seconds = (millis % 60000) / 1000
