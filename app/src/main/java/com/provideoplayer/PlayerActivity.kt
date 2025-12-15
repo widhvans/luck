@@ -130,6 +130,16 @@ class PlayerActivity : AppCompatActivity() {
     // Audio playback visualization
     private var isAudioFile = false
     private var cdAnimator: android.animation.ObjectAnimator? = null
+    
+    // Error recovery for stream parsing - try different MIME types
+    private var currentMimeTypeIndex = 0
+    private val fallbackMimeTypes = listOf(
+        MimeTypes.VIDEO_MP4,           // Try MP4 first (most common)
+        MimeTypes.APPLICATION_M3U8,    // Then HLS
+        MimeTypes.VIDEO_MATROSKA,      // Then MKV
+        MimeTypes.VIDEO_WEBM,          // Then WebM
+        null                           // Finally let ExoPlayer auto-detect
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -517,6 +527,39 @@ class PlayerActivity : AppCompatActivity() {
             .setCancelable(false)
             .show()
     }
+    
+    /**
+     * Retry playback with a specific MIME type for network streams
+     */
+    private fun retryWithMimeType(uriString: String, mimeType: String?) {
+        player?.let { exoPlayer ->
+            try {
+                val uri = Uri.parse(uriString)
+                
+                android.util.Log.d("PlayerActivity", "Retrying stream with MIME: $mimeType, URI: $uriString")
+                
+                val mediaItem = MediaItem.Builder()
+                    .setUri(uri)
+                    .apply {
+                        mimeType?.let { setMimeType(it) }
+                    }
+                    .build()
+                
+                // Stop current playback
+                exoPlayer.stop()
+                
+                // Set new media item and prepare
+                exoPlayer.setMediaItem(mediaItem)
+                exoPlayer.prepare()
+                exoPlayer.playWhenReady = true
+                
+                binding.progressBar.visibility = View.VISIBLE
+            } catch (e: Exception) {
+                android.util.Log.e("PlayerActivity", "Error retrying with MIME type: $mimeType", e)
+                Toast.makeText(this, "Failed to retry: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     private val playerListener = object : Player.Listener {
         override fun onPlaybackStateChanged(state: Int) {
@@ -582,9 +625,32 @@ class PlayerActivity : AppCompatActivity() {
             android.util.Log.e("PlayerActivity", "Player error: ${error.errorCodeName} - ${error.message}", error)
             binding.progressBar.visibility = View.GONE
             
-            // Create detailed error info
-            val currentUri = playlist.getOrNull(currentIndex) ?: "Unknown"
-            val mimeType = if (currentUri != "Unknown") getMimeType(currentUri) else "Unknown"
+            val currentUri = playlist.getOrNull(currentIndex) ?: ""
+            val isNetworkStream = currentUri.startsWith("http://") || currentUri.startsWith("https://")
+            val isParsingError = error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED ||
+                                 error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED ||
+                                 error.message?.contains("Multiple Segment elements", true) == true ||
+                                 error.cause?.message?.contains("Multiple Segment elements", true) == true
+            
+            // For network streams with parsing errors, try different MIME types
+            if (isNetworkStream && isParsingError && currentMimeTypeIndex < fallbackMimeTypes.size - 1) {
+                currentMimeTypeIndex++
+                val nextMimeType = fallbackMimeTypes[currentMimeTypeIndex]
+                android.util.Log.d("PlayerActivity", "Retrying with MIME type: $nextMimeType (attempt ${currentMimeTypeIndex + 1}/${fallbackMimeTypes.size})")
+                
+                Toast.makeText(
+                    this@PlayerActivity, 
+                    "Trying format ${currentMimeTypeIndex + 1}/${fallbackMimeTypes.size}...", 
+                    Toast.LENGTH_SHORT
+                ).show()
+                
+                // Reload with new MIME type
+                retryWithMimeType(currentUri, nextMimeType)
+                return
+            }
+            
+            // All retries failed or not a parsing error - show error dialog
+            val mimeType = if (currentUri.isNotEmpty()) getMimeType(currentUri) else "Unknown"
             
             val errorDetails = buildString {
                 appendLine("=== VIDEO PLAYER ERROR ===")
@@ -592,6 +658,14 @@ class PlayerActivity : AppCompatActivity() {
                 appendLine("Error Code: ${error.errorCodeName}")
                 appendLine("Error Message: ${error.message}")
                 appendLine()
+                if (isNetworkStream && isParsingError) {
+                    appendLine("=== STREAM FORMAT ISSUE ===")
+                    appendLine("The stream format could not be parsed.")
+                    appendLine("This usually happens when the server sends")
+                    appendLine("non-standard video data.")
+                    appendLine("Tried ${currentMimeTypeIndex + 1} different formats.")
+                    appendLine()
+                }
                 appendLine("=== VIDEO INFO ===")
                 appendLine("URI: $currentUri")
                 appendLine("MIME Type: $mimeType")
@@ -605,6 +679,9 @@ class PlayerActivity : AppCompatActivity() {
                 appendLine("=== STACK TRACE ===")
                 appendLine(error.stackTraceToString())
             }
+            
+            // Reset retry counter for next playback
+            currentMimeTypeIndex = 0
             
             // Show error dialog with copy button
             showErrorDialog(errorDetails)
