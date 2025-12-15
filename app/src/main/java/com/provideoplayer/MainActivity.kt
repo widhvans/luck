@@ -41,8 +41,8 @@ class MainActivity : AppCompatActivity() {
     private var currentTab = 0  // 0=Videos, 1=Audio, 2=Browse, 3=Playlist
     private var browseFilter = 0  // 0=All, 1=Videos only, 2=Audio only
     
-    // Scroll position state for preserving list position
-    private var savedScrollPosition: android.os.Parcelable? = null
+    // Scroll position state for preserving list position per tab
+    private val tabScrollPositions = mutableMapOf<Int, android.os.Parcelable?>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Apply saved theme before calling super.onCreate and setContentView
@@ -181,6 +181,11 @@ class MainActivity : AppCompatActivity() {
     
     private fun setupBottomNavigation() {
         binding.bottomNavigation.setOnItemSelectedListener { item ->
+            // Save current tab's scroll position before switching
+            saveCurrentTabScrollPosition()
+            
+            val previousTab = currentTab
+            
             when (item.itemId) {
                 R.id.nav_videos -> {
                     currentTab = 0
@@ -190,6 +195,8 @@ class MainActivity : AppCompatActivity() {
                     currentFolderId = null
                     currentFolderPath = null
                     loadVideos()
+                    // Restore scroll position after a short delay to let content load
+                    restoreTabScrollPosition(0)
                     true
                 }
                 R.id.nav_audio -> {
@@ -200,6 +207,7 @@ class MainActivity : AppCompatActivity() {
                     currentFolderId = null
                     currentFolderPath = null
                     showAudioFiles()
+                    restoreTabScrollPosition(1)
                     true
                 }
                 R.id.nav_browse -> {
@@ -210,6 +218,7 @@ class MainActivity : AppCompatActivity() {
                     currentFolderId = null
                     currentFolderPath = null
                     showBrowseMedia()
+                    restoreTabScrollPosition(2)
                     true
                 }
                 R.id.nav_playlist -> {
@@ -221,6 +230,7 @@ class MainActivity : AppCompatActivity() {
                     currentFolderId = null
                     currentFolderPath = null
                     showPlaylists()
+                    restoreTabScrollPosition(3)
                     true
                 }
                 R.id.nav_network -> {
@@ -230,6 +240,21 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
                 else -> false
+            }
+        }
+    }
+    
+    private fun saveCurrentTabScrollPosition() {
+        val scrollPosition = binding.recyclerView.layoutManager?.onSaveInstanceState()
+        tabScrollPositions[currentTab] = scrollPosition
+    }
+    
+    private fun restoreTabScrollPosition(tabIndex: Int) {
+        val savedPosition = tabScrollPositions[tabIndex]
+        if (savedPosition != null) {
+            // Delay restoration to ensure content is loaded
+            binding.recyclerView.post {
+                binding.recyclerView.layoutManager?.onRestoreInstanceState(savedPosition)
             }
         }
     }
