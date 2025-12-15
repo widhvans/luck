@@ -32,6 +32,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var folderAdapter: FolderAdapter
     
     private var allVideos: List<VideoItem> = emptyList()
+    private var allAudioFiles: List<VideoItem> = emptyList()  // For Browse tab audio filter
     private var allFolders: List<FolderItem> = emptyList()
     private var currentFolderId: Long? = null
     private var isShowingFolders = true
@@ -466,6 +467,7 @@ class MainActivity : AppCompatActivity() {
             try {
                 allVideos = VideoScanner.getAllVideos(this@MainActivity)
                 allFolders = VideoScanner.getAllFolders(this@MainActivity)
+                allAudioFiles = VideoScanner.getAllAudio(this@MainActivity)  // Load audio for Browse filter
                 
                 binding.swipeRefresh.isRefreshing = false
                 binding.progressBar.visibility = View.GONE
@@ -536,6 +538,9 @@ class MainActivity : AppCompatActivity() {
         
         if (currentTab == 1) {
             // Audio tab - show audio files from folder path
+            showAudioInFolder(folder.path)
+        } else if (currentTab == 2 && browseFilter == 2) {
+            // Browse tab with Audio filter - show audio files from folder path
             showAudioInFolder(folder.path)
         } else {
             // Video/Browse tab - show videos by folder ID
@@ -849,18 +854,22 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             2 -> {
-                // Audio filter - show folders with audio, count only audio
-                allFolders.mapNotNull { folder ->
-                    val audioCount = allVideos.count { video ->
-                        video.folderId == folder.id &&
-                        (video.mimeType.startsWith("audio") ||
-                        video.path.endsWith(".mp3", true) ||
-                        video.path.endsWith(".m4a", true) ||
-                        video.path.endsWith(".aac", true) ||
-                        video.path.endsWith(".wav", true) ||
-                        video.path.endsWith(".flac", true))
-                    }
-                    if (audioCount > 0) folder.copy(videoCount = audioCount) else null
+                // Audio filter - create folders from audio files by path
+                val audioFolderMap = mutableMapOf<String, Int>()
+                allAudioFiles.forEach { audio ->
+                    val folderPath = audio.path.substringBeforeLast("/")
+                    audioFolderMap[folderPath] = (audioFolderMap[folderPath] ?: 0) + 1
+                }
+                
+                // Convert to FolderItem list
+                audioFolderMap.map { (path, count) ->
+                    val folderName = path.substringAfterLast("/")
+                    FolderItem(
+                        id = path.hashCode().toLong(),
+                        name = if (folderName.isNotEmpty()) folderName else "Audio",
+                        path = path,
+                        videoCount = count
+                    )
                 }
             }
             else -> allFolders  // No filter
