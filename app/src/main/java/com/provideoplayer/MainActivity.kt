@@ -860,33 +860,8 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun confirmAndDeleteVideo(video: VideoItem) {
-        val prefs = getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
-        val dontAskAgain = prefs.getBoolean("delete_dont_ask_again", false)
-        
-        if (dontAskAgain) {
-            // Delete directly without asking
-            deleteVideo(video)
-        } else {
-            // Show confirmation dialog with checkbox
-            val checkboxView = android.widget.CheckBox(this).apply {
-                text = "Don't ask again"
-                setPadding(48, 24, 48, 0)
-            }
-            
-            MaterialAlertDialogBuilder(this)
-                .setTitle("Delete File")
-                .setMessage("Are you sure you want to delete:\n\n${video.title}?")
-                .setView(checkboxView)
-                .setPositiveButton("Yes") { _, _ ->
-                    // Save preference if checkbox checked
-                    if (checkboxView.isChecked) {
-                        prefs.edit().putBoolean("delete_dont_ask_again", true).apply()
-                    }
-                    deleteVideo(video)
-                }
-                .setNegativeButton("No", null)
-                .show()
-        }
+        // Delete directly without confirmation
+        deleteVideo(video)
     }
     
     private fun deleteVideo(video: VideoItem) {

@@ -47,7 +47,8 @@ class NetworkStreamActivity : AppCompatActivity() {
         historyAdapter = StreamHistoryAdapter(
             streamHistory,
             onItemClick = { url -> 
-                binding.urlInput.setText(url)
+                // Play directly on click instead of pasting to input
+                playNetworkStream(url, "Network Stream")
             },
             onDeleteClick = { url ->
                 removeFromHistory(url)
