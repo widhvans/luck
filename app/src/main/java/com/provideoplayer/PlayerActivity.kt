@@ -958,11 +958,11 @@ class PlayerActivity : AppCompatActivity() {
                     if (x < screenWidth / 3) {
                         // Left third - rewind
                         seekBackward()
-                        showSeekIndicator(-10)
+                        showSeekIndicator(-10, isLeft = true)
                     } else if (x > screenWidth * 2 / 3) {
                         // Right third - forward
                         seekForward()
-                        showSeekIndicator(10)
+                        showSeekIndicator(10, isLeft = false)
                     } else {
                         // Center - play/pause
                         togglePlayPause()
@@ -1475,12 +1475,20 @@ class PlayerActivity : AppCompatActivity() {
         binding.seekIndicator.visibility = View.GONE
     }
     
-    private fun showSeekIndicator(seconds: Int) {
+    private fun showSeekIndicator(seconds: Int, isLeft: Boolean) {
         // Cancel any pending hide
         binding.seekIndicator.removeCallbacks(hideSeekIndicatorRunnable)
         
         binding.seekIndicator.visibility = View.VISIBLE
         binding.seekIndicator.text = "${if (seconds > 0) "+" else ""}$seconds sec"
+        
+        // Position on left or right side based on where user tapped
+        val params = binding.seekIndicator.layoutParams as android.widget.FrameLayout.LayoutParams
+        params.gravity = android.view.Gravity.CENTER_VERTICAL or 
+            (if (isLeft) android.view.Gravity.START else android.view.Gravity.END)
+        params.marginStart = if (isLeft) (screenWidth / 6) else 0
+        params.marginEnd = if (isLeft) 0 else (screenWidth / 6)
+        binding.seekIndicator.layoutParams = params
         
         // Schedule hide after 800ms
         binding.seekIndicator.postDelayed(hideSeekIndicatorRunnable, 800)
