@@ -102,6 +102,11 @@ class PlayerActivity : AppCompatActivity() {
     private var isGestureActive = false
     private var gestureType = GestureType.NONE
     
+    // Pan gesture tracking for zoomed state
+    private var lastTouchX = 0f
+    private var lastTouchY = 0f
+    private var isPanning = false
+    
     // Control visibility
     private val hideHandler = Handler(Looper.getMainLooper())
     private val progressHandler = Handler(Looper.getMainLooper()) // Separate handler for progress updates
@@ -749,14 +754,53 @@ class PlayerActivity : AppCompatActivity() {
             // Handle scale gesture first (2+ fingers)
             scaleGestureDetector.onTouchEvent(event)
             
-            // Only process single-finger gestures if not scaling
-            if (!scaleGestureDetector.isInProgress) {
+            // Handle two-finger pan when zoomed
+            if (currentScale > 1.0f && event.pointerCount == 2 && !scaleGestureDetector.isInProgress) {
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_POINTER_DOWN -> {
+                        isPanning = true
+                        lastTouchX = (event.getX(0) + event.getX(1)) / 2f
+                        lastTouchY = (event.getY(0) + event.getY(1)) / 2f
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        if (isPanning && event.pointerCount >= 2) {
+                            val currentX = (event.getX(0) + event.getX(1)) / 2f
+                            val currentY = (event.getY(0) + event.getY(1)) / 2f
+                            val dx = currentX - lastTouchX
+                            val dy = currentY - lastTouchY
+                            
+                            // Apply pan translation
+                            currentTranslateX += dx
+                            currentTranslateY += dy
+                            
+                            // Limit translation to zoomed content bounds
+                            val maxTranslateX = (currentScale - 1f) * screenWidth / 2f
+                            val maxTranslateY = (currentScale - 1f) * screenHeight / 2f
+                            currentTranslateX = currentTranslateX.coerceIn(-maxTranslateX, maxTranslateX)
+                            currentTranslateY = currentTranslateY.coerceIn(-maxTranslateY, maxTranslateY)
+                            
+                            binding.playerView.translationX = currentTranslateX
+                            binding.playerView.translationY = currentTranslateY
+                            
+                            lastTouchX = currentX
+                            lastTouchY = currentY
+                        }
+                    }
+                    MotionEvent.ACTION_POINTER_UP, MotionEvent.ACTION_UP -> {
+                        isPanning = false
+                    }
+                }
+            }
+            
+            // Only process single-finger gestures if not scaling and not panning
+            if (!scaleGestureDetector.isInProgress && !isPanning && event.pointerCount == 1) {
                 gestureDetector.onTouchEvent(event)
             }
             
             if (event.action == MotionEvent.ACTION_UP || event.action == MotionEvent.ACTION_CANCEL) {
                 isGestureActive = false
                 gestureType = GestureType.NONE
+                isPanning = false
                 hideGestureIndicator()
             }
             
@@ -873,17 +917,14 @@ class PlayerActivity : AppCompatActivity() {
             
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
                 val duration = player?.duration ?: 0
-                // Only seek if duration is valid (positive) and stream is seekable
-                if (duration > 0 && player?.isCurrentMediaItemSeekable == true) {
-                    val progress = seekBar?.progress ?: 0
+                val progress = seekBar?.progress ?: 0
+                
+                if (duration > 0) {
+                    // Calculate target position and seek
                     val position = (duration * progress / 100).toLong()
                     player?.seekTo(position)
-                } else if (duration <= 0) {
-                    // For live streams or unknown duration, show message
-                    Toast.makeText(this@PlayerActivity, "Cannot seek - unknown duration", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this@PlayerActivity, "This stream is not seekable", Toast.LENGTH_SHORT).show()
                 }
+                // If duration is 0 or negative, just ignore - ExoPlayer error handler will catch issues
                 startProgressUpdates()
             }
         })
