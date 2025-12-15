@@ -2032,47 +2032,75 @@ class PlayerActivity : AppCompatActivity() {
         // Show tooltip pointing to audio track button
         showControls()  // Make sure controls are visible
         
-        // Create simple, clean tooltip layout
+        // Highlight the audio track button with pulse animation
+        val pulseAnimation = android.view.animation.ScaleAnimation(
+            1.0f, 1.3f, 1.0f, 1.3f,
+            android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f,
+            android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f
+        ).apply {
+            duration = 400
+            repeatCount = 3
+            repeatMode = android.view.animation.Animation.REVERSE
+        }
+        
+        // Add glow background to button
+        val originalBackground = binding.btnAudioTrack.background
+        val glowDrawable = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.OVAL
+            setColor(android.graphics.Color.parseColor("#334CAF50"))  // Semi-transparent green
+            setStroke(4, android.graphics.Color.parseColor("#4CAF50"))
+        }
+        binding.btnAudioTrack.background = glowDrawable
+        binding.btnAudioTrack.startAnimation(pulseAnimation)
+        
+        // Create tooltip layout
         val tooltipLayout = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.HORIZONTAL
             setPadding(32, 20, 32, 20)
             gravity = android.view.Gravity.CENTER_VERTICAL
             
-            // Set rounded background
+            // Set highlighted rounded background with glow
             background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(android.graphics.Color.parseColor("#DD1A1A1A"))
-                cornerRadius = 24f
-                setStroke(2, android.graphics.Color.parseColor("#4CAF50"))
+                setColor(android.graphics.Color.parseColor("#EE1A1A1A"))
+                cornerRadius = 28f
+                setStroke(3, android.graphics.Color.parseColor("#4CAF50"))
             }
+            
+            // Start with scale 0 for animation
+            scaleX = 0f
+            scaleY = 0f
+            pivotX = 0f  // Scale from left (where button is)
+            pivotY = 0f
         }
         
-        // Audio track icon (green)
+        // Audio track icon (bright green, highlighted)
         val iconView = android.widget.ImageView(this).apply {
             setImageResource(R.drawable.ic_audio_track)
             setColorFilter(android.graphics.Color.parseColor("#4CAF50"))
-            layoutParams = android.widget.LinearLayout.LayoutParams(48, 48).apply {
-                marginEnd = 16
+            layoutParams = android.widget.LinearLayout.LayoutParams(52, 52).apply {
+                marginEnd = 14
             }
         }
         
-        // Arrow pointing right
+        // Animated arrow pointing right
         val arrowView = android.widget.TextView(this).apply {
-            text = "→"
-            setTextColor(android.graphics.Color.parseColor("#888888"))
-            textSize = 18f
+            text = "➜"
+            setTextColor(android.graphics.Color.parseColor("#4CAF50"))
+            textSize = 20f
             layoutParams = android.widget.LinearLayout.LayoutParams(
                 android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
                 android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                marginEnd = 16
+                marginEnd = 14
             }
         }
         
-        // Text message
+        // Text message (bold and clear)
         val textView = android.widget.TextView(this).apply {
-            text = "Multiple audio tracks\nTap to change"
+            text = "Multiple Audio Tracks!\nTap to switch language"
             setTextColor(android.graphics.Color.WHITE)
             textSize = 13f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
             setLineSpacing(4f, 1f)
         }
         
@@ -2086,28 +2114,61 @@ class PlayerActivity : AppCompatActivity() {
             android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
             true
         )
-        popup.elevation = 20f
+        popup.elevation = 24f
         popup.setBackgroundDrawable(null)
         
-        // Show popup below audio track button
+        // Restore button background when popup dismisses
+        popup.setOnDismissListener {
+            binding.btnAudioTrack.background = originalBackground
+            binding.btnAudioTrack.clearAnimation()
+        }
+        
+        // Show popup with slide-in animation from button
         binding.btnAudioTrack.postDelayed({
             try {
-                popup.showAsDropDown(binding.btnAudioTrack, -80, 16)
+                popup.showAsDropDown(binding.btnAudioTrack, -40, 12)
+                
+                // Animate tooltip appearing from button (scale + fade)
+                tooltipLayout.animate()
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .alpha(1f)
+                    .setDuration(300)
+                    .setInterpolator(android.view.animation.OvershootInterpolator(1.2f))
+                    .start()
+                
+                // Animate arrow pulsing
+                val arrowPulse = android.view.animation.AlphaAnimation(0.5f, 1f).apply {
+                    duration = 500
+                    repeatCount = android.view.animation.Animation.INFINITE
+                    repeatMode = android.view.animation.Animation.REVERSE
+                }
+                arrowView.startAnimation(arrowPulse)
                 
                 // Dismiss on tap
                 tooltipLayout.setOnClickListener {
                     popup.dismiss()
                 }
                 
-                // Auto-dismiss after 4 seconds
+                // Auto-dismiss after 5 seconds
                 binding.btnAudioTrack.postDelayed({
-                    if (popup.isShowing) popup.dismiss()
-                }, 4000)
+                    if (popup.isShowing) {
+                        tooltipLayout.animate()
+                            .scaleX(0f)
+                            .scaleY(0f)
+                            .alpha(0f)
+                            .setDuration(200)
+                            .withEndAction { popup.dismiss() }
+                            .start()
+                    }
+                }, 5000)
             } catch (e: Exception) {
                 android.util.Log.e("PlayerActivity", "Failed to show audio tooltip", e)
+                binding.btnAudioTrack.background = originalBackground
             }
-        }, 800)
+        }, 600)
     }
+
 
     
     // Loading animation for buffering
