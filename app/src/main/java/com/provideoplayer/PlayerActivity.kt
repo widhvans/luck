@@ -1557,9 +1557,42 @@ class PlayerActivity : AppCompatActivity() {
                 for (i in 0 until group.length) {
                     val format = group.getTrackFormat(i)
                     val label = buildString {
-                        append(format.label ?: format.language ?: "Audio")
+                        // Get language name from code
+                        val languageCode = format.language
+                        val languageName = if (languageCode != null) {
+                            try {
+                                java.util.Locale(languageCode).displayLanguage
+                            } catch (e: Exception) {
+                                languageCode.uppercase()
+                            }
+                        } else null
+                        
+                        // Build label with language highlighted
+                        val trackLabel = format.label ?: "Track ${i + 1}"
+                        
+                        if (languageName != null && languageName.isNotEmpty() && languageName != languageCode) {
+                            // Show: "Track Name [Language]" format
+                            append(trackLabel)
+                            append(" [")
+                            append(languageName)
+                            if (languageCode != null) {
+                                append(" - ")
+                                append(languageCode.uppercase())
+                            }
+                            append("]")
+                        } else if (languageCode != null) {
+                            // Just show code if no display name
+                            append(trackLabel)
+                            append(" [")
+                            append(languageCode.uppercase())
+                            append("]")
+                        } else {
+                            append(trackLabel)
+                        }
+                        
+                        // Add technical details
                         if (format.channelCount > 0) {
-                            append(" (${format.channelCount}ch)")
+                            append(" • ${format.channelCount}ch")
                         }
                         if (format.sampleRate > 0) {
                             append(" ${format.sampleRate / 1000}kHz")
@@ -1577,9 +1610,18 @@ class PlayerActivity : AppCompatActivity() {
         
         val names = audioTracks.map { it.first }.toTypedArray()
         
+        // Find currently selected track index
+        var selectedIndex = 0
+        for ((index, pair) in audioTracks.withIndex()) {
+            if (pair.second.isSelected) {
+                selectedIndex = index
+                break
+            }
+        }
+        
         MaterialAlertDialogBuilder(this)
-            .setTitle("Audio Track")
-            .setItems(names) { dialog, which ->
+            .setTitle("🎵 Audio Track")
+            .setSingleChoiceItems(names, selectedIndex) { dialog, which ->
                 val group = audioTracks[which].second
                 trackSelector.setParameters(
                     trackSelector.buildUponParameters()
@@ -1589,6 +1631,7 @@ class PlayerActivity : AppCompatActivity() {
                 )
                 dialog.dismiss()
             }
+            .setNegativeButton("Cancel", null)
             .show()
     }
 
