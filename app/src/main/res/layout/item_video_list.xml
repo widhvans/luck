@@ -81,17 +81,14 @@
 
     </LinearLayout>
 
-    <!-- Resolution Badge (optional) -->
-    <TextView
-        android:id="@+id/videoResolution"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="@drawable/bg_resolution_badge"
-        android:paddingHorizontal="6dp"
-        android:paddingVertical="2dp"
-        android:text="HD"
-        android:textColor="@color/white"
-        android:textSize="10sp"
-        android:visibility="gone" />
+    <!-- 3-Dots Menu Button -->
+    <ImageView
+        android:id="@+id/btnMenu"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:src="@drawable/ic_more_vert"
+        android:padding="4dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        app:tint="@color/text_secondary" />
 
 </LinearLayout>

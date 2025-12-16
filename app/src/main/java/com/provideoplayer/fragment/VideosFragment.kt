@@ -51,6 +51,9 @@ class VideosFragment : Fragment() {
             onVideoLongClick = { video ->
                 showVideoInfo(video)
                 true
+            },
+            onMenuClick = { video, view ->
+                showVideoMenu(video, view)
             }
         )
         
@@ -59,6 +62,73 @@ class VideosFragment : Fragment() {
             setHasFixedSize(true)
         }
         applyLayoutPreference()
+    }
+    
+    private fun showVideoMenu(video: VideoItem, anchorView: View) {
+        val popup = android.widget.PopupMenu(requireContext(), anchorView)
+        popup.menuInflater.inflate(R.menu.menu_video_item, popup.menu)
+        
+        popup.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.action_play -> {
+                    openPlayer(video, 0)
+                    true
+                }
+                R.id.action_info -> {
+                    showVideoInfo(video)
+                    true
+                }
+                R.id.action_delete -> {
+                    deleteVideo(video)
+                    true
+                }
+                R.id.action_send -> {
+                    shareVideo(video)
+                    true
+                }
+                else -> false
+            }
+        }
+        popup.show()
+    }
+    
+    private fun deleteVideo(video: VideoItem) {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Delete Video")
+            .setMessage("Are you sure you want to delete '${video.title}'?")
+            .setPositiveButton("Delete") { _, _ ->
+                try {
+                    val file = java.io.File(video.path)
+                    if (file.exists() && file.delete()) {
+                        Toast.makeText(requireContext(), "Video deleted", Toast.LENGTH_SHORT).show()
+                        loadVideos() // Refresh list
+                    } else {
+                        Toast.makeText(requireContext(), "Failed to delete", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+    
+    private fun shareVideo(video: VideoItem) {
+        try {
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                requireContext(),
+                "${requireContext().packageName}.fileprovider",
+                java.io.File(video.path)
+            )
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "video/*"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(Intent.createChooser(intent, "Share Video"))
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "Cannot share this file", Toast.LENGTH_SHORT).show()
+        }
     }
     
     private fun setupSwipeRefresh() {

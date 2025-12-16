@@ -63,27 +63,30 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
             android:padding="6dp">
 
             <TextView
                 android:id="@+id/videoTitle"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:ellipsize="end"
                 android:maxLines="2"
                 android:textColor="@color/text_primary"
                 android:textSize="12sp"
                 tools:text="Video Title Here" />
 
-            <TextView
-                android:id="@+id/videoSize"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:textColor="@color/text_secondary"
-                android:textSize="10sp"
-                tools:text="25.5 MB" />
+            <!-- 3-Dots Menu Button -->
+            <ImageView
+                android:id="@+id/btnMenu"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_more_vert"
+                android:padding="2dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                app:tint="@color/text_secondary" />
 
         </LinearLayout>
 

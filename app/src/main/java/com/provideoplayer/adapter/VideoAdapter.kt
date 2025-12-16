@@ -18,7 +18,8 @@ import com.provideoplayer.model.VideoItem
  */
 class VideoAdapter(
     private val onVideoClick: (VideoItem, Int) -> Unit,
-    private val onVideoLongClick: (VideoItem) -> Boolean
+    private val onVideoLongClick: (VideoItem) -> Boolean,
+    private val onMenuClick: ((VideoItem, View) -> Unit)? = null
 ) : ListAdapter<VideoItem, VideoAdapter.VideoViewHolder>(VideoDiffCallback()) {
 
     companion object {
@@ -71,13 +72,13 @@ class VideoAdapter(
     inner class VideoViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val thumbnail: ImageView = itemView.findViewById(R.id.videoThumbnail)
         private val title: TextView = itemView.findViewById(R.id.videoTitle)
-        private val duration: TextView = itemView.findViewById(R.id.videoDuration)
-        private val size: TextView = itemView.findViewById(R.id.videoSize)
-        private val resolution: TextView = itemView.findViewById(R.id.videoResolution)
+        private val duration: TextView? = itemView.findViewById(R.id.videoDuration)
+        private val size: TextView? = itemView.findViewById(R.id.videoSize)
+        private val btnMenu: ImageView? = itemView.findViewById(R.id.btnMenu)
 
         fun bind(video: VideoItem, position: Int) {
             title.text = video.title
-            duration.text = video.getFormattedDuration()
+            duration?.text = video.getFormattedDuration()
             
             // Check if it's an audio file
             val isAudio = video.mimeType.startsWith("audio") ||
@@ -92,40 +93,35 @@ class VideoAdapter(
             // Check if media is in history using proper JSON parsing
             val videoUri = video.uri.toString()
             
-            if (isAudio) {
-                val audioHistoryJson = prefs.getString("audio_history", "[]") ?: "[]"
-                val isListened = isUriInHistory(audioHistoryJson, videoUri)
-                
-                if (isListened) {
-                    size.text = video.getFormattedSize()
-                    size.setTextColor(itemView.context.getColor(R.color.text_secondary))
-                    size.setTypeface(null, android.graphics.Typeface.NORMAL)
+            // Handle size view if present (list view only)
+            size?.let { sizeView ->
+                if (isAudio) {
+                    val audioHistoryJson = prefs.getString("audio_history", "[]") ?: "[]"
+                    val isListened = isUriInHistory(audioHistoryJson, videoUri)
+                    
+                    if (isListened) {
+                        sizeView.text = video.getFormattedSize()
+                        sizeView.setTextColor(itemView.context.getColor(R.color.text_secondary))
+                        sizeView.setTypeface(null, android.graphics.Typeface.NORMAL)
+                    } else {
+                        sizeView.text = "● NEW"
+                        sizeView.setTextColor(android.graphics.Color.parseColor("#00BFFF"))
+                        sizeView.setTypeface(null, android.graphics.Typeface.BOLD)
+                    }
                 } else {
-                    size.text = "● NEW"
-                    size.setTextColor(android.graphics.Color.parseColor("#00BFFF"))  // Deep sky blue for audio
-                    size.setTypeface(null, android.graphics.Typeface.BOLD)
+                    val historyJson = prefs.getString("video_history", "[]") ?: "[]"
+                    val isWatched = isUriInHistory(historyJson, videoUri)
+                    
+                    if (isWatched) {
+                        sizeView.text = video.getFormattedSize()
+                        sizeView.setTextColor(itemView.context.getColor(R.color.text_secondary))
+                        sizeView.setTypeface(null, android.graphics.Typeface.NORMAL)
+                    } else {
+                        sizeView.text = "● NEW"
+                        sizeView.setTextColor(android.graphics.Color.parseColor("#00FF7F"))
+                        sizeView.setTypeface(null, android.graphics.Typeface.BOLD)
+                    }
                 }
-            } else {
-                val historyJson = prefs.getString("video_history", "[]") ?: "[]"
-                val isWatched = isUriInHistory(historyJson, videoUri)
-                
-                if (isWatched) {
-                    size.text = video.getFormattedSize()
-                    size.setTextColor(itemView.context.getColor(R.color.text_secondary))
-                    size.setTypeface(null, android.graphics.Typeface.NORMAL)
-                } else {
-                    size.text = "● NEW"
-                    size.setTextColor(android.graphics.Color.parseColor("#00FF7F"))  // Bright green for video
-                    size.setTypeface(null, android.graphics.Typeface.BOLD)
-                }
-            }
-            
-            // Show resolution if available
-            if (video.resolution.isNotEmpty()) {
-                resolution.visibility = View.VISIBLE
-                resolution.text = video.resolution
-            } else {
-                resolution.visibility = View.GONE
             }
 
             // Load thumbnail
@@ -151,6 +147,11 @@ class VideoAdapter(
             itemView.setOnLongClickListener {
                 onVideoLongClick(video)
             }
+            
+            // Menu button click
+            btnMenu?.setOnClickListener { view ->
+                onMenuClick?.invoke(video, view)
+            }
         }
     }
 
@@ -165,3 +166,4 @@ class VideoAdapter(
         }
     }
 }
+
