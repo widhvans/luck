@@ -222,12 +222,15 @@ class PlaylistFragment : Fragment() {
     
     fun refreshData() {
         if (isAdded && _binding != null) {
-            // Only change layout - don't reload data for smoother toggle
-            val currentList = videoAdapter.currentList.toList()
+            // Save scroll position before layout change
+            val scrollState = binding.recyclerView.layoutManager?.onSaveInstanceState()
+            
+            // Change layout without reloading data
             applyLayoutPreference()
-            // Resubmit same list with new layout
-            if (currentList.isNotEmpty()) {
-                videoAdapter.submitList(currentList)
+            
+            // Restore scroll position after layout change
+            scrollState?.let {
+                binding.recyclerView.layoutManager?.onRestoreInstanceState(it)
             }
         }
     }

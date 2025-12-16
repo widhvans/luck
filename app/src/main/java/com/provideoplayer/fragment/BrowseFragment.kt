@@ -549,15 +549,19 @@ class BrowseFragment : Fragment() {
     
     fun refreshData() {
         if (isAdded && _binding != null) {
-            // Only change layout - don't clear and resubmit to avoid glitch
+            // Save scroll position before layout change
+            val scrollState = binding.recyclerView.layoutManager?.onSaveInstanceState()
+            
+            // Change layout without clearing data
             if (isShowingFolders) {
                 applyFolderLayoutPreference()
-                // Just refresh the adapter without clearing
-                folderAdapter.notifyDataSetChanged()
             } else {
                 applyLayoutPreference()
-                // Just refresh the adapter without clearing
-                videoAdapter.notifyDataSetChanged()
+            }
+            
+            // Restore scroll position after layout change
+            scrollState?.let {
+                binding.recyclerView.layoutManager?.onRestoreInstanceState(it)
             }
         }
     }

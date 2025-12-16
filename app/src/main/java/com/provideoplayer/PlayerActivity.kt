@@ -1375,10 +1375,20 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun updatePlayPauseButton() {
-        val isPlaying = player?.isPlaying == true
-        binding.btnPlayPause.setImageResource(
-            if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
-        )
+    player?.let { p ->
+        val isPlaying = p.isPlaying
+        val duration = p.duration
+        val position = p.currentPosition
+        val isEnded = p.playbackState == Player.STATE_ENDED || 
+                     (duration > 0 && position >= duration - 100)
+        
+        val iconRes = when {
+            isEnded -> R.drawable.ic_restart  // Show restart icon when video ended
+            isPlaying -> R.drawable.ic_pause
+            else -> R.drawable.ic_play
+        }
+        binding.btnPlayPause.setImageResource(iconRes)
+    }
     }
 
     private fun seekForward() {
