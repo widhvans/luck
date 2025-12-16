@@ -74,6 +74,10 @@ class VideosFragment : Fragment() {
                     openPlayer(video, 0)
                     true
                 }
+                R.id.action_pip -> {
+                    openPlayerInPiP(video)
+                    true
+                }
                 R.id.action_info -> {
                     showVideoInfo(video)
                     true
@@ -90,6 +94,16 @@ class VideosFragment : Fragment() {
             }
         }
         popup.show()
+    }
+    
+    private fun openPlayerInPiP(video: VideoItem) {
+        val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(PlayerActivity.EXTRA_VIDEO_URI, video.uri.toString())
+            putExtra(PlayerActivity.EXTRA_VIDEO_TITLE, video.title)
+            putExtra("START_IN_PIP", true)
+        }
+        startActivity(intent)
     }
     
     private fun deleteVideo(video: VideoItem) {

@@ -221,6 +221,13 @@ class PlayerActivity : AppCompatActivity() {
         
         // Hide system UI
         hideSystemUI()
+        
+        // Check if should start in PiP mode
+        if (intent.getBooleanExtra("START_IN_PIP", false)) {
+            binding.root.postDelayed({
+                enterPiPMode()
+            }, 500)
+        }
     }
     
     override fun onNewIntent(newIntent: Intent?) {

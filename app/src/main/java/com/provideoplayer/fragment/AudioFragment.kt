@@ -98,6 +98,9 @@ class AudioFragment : Fragment() {
             onVideoLongClick = { audio ->
                 showAudioInfo(audio)
                 true
+            },
+            onMenuClick = { audio, view ->
+                showAudioMenu(audio, view)
             }
         )
         
@@ -106,6 +109,87 @@ class AudioFragment : Fragment() {
             setHasFixedSize(true)
         }
         applyLayoutPreference()
+    }
+    
+    private fun showAudioMenu(audio: VideoItem, anchorView: android.view.View) {
+        val popup = android.widget.PopupMenu(requireContext(), anchorView)
+        popup.menuInflater.inflate(R.menu.menu_video_item, popup.menu)
+        
+        popup.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.action_play -> {
+                    openPlayer(audio, 0)
+                    true
+                }
+                R.id.action_pip -> {
+                    openPlayerInPiP(audio)
+                    true
+                }
+                R.id.action_info -> {
+                    showAudioInfo(audio)
+                    true
+                }
+                R.id.action_delete -> {
+                    deleteAudio(audio)
+                    true
+                }
+                R.id.action_send -> {
+                    shareAudio(audio)
+                    true
+                }
+                else -> false
+            }
+        }
+        popup.show()
+    }
+    
+    private fun openPlayerInPiP(audio: VideoItem) {
+        val intent = android.content.Intent(requireContext(), PlayerActivity::class.java).apply {
+            flags = android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(PlayerActivity.EXTRA_VIDEO_URI, audio.uri.toString())
+            putExtra(PlayerActivity.EXTRA_VIDEO_TITLE, audio.title)
+            putExtra("START_IN_PIP", true)
+        }
+        startActivity(intent)
+    }
+    
+    private fun deleteAudio(audio: VideoItem) {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Delete Audio")
+            .setMessage("Are you sure you want to delete '${audio.title}'?")
+            .setPositiveButton("Delete") { _, _ ->
+                try {
+                    val file = java.io.File(audio.path)
+                    if (file.exists() && file.delete()) {
+                        android.widget.Toast.makeText(requireContext(), "Audio deleted", android.widget.Toast.LENGTH_SHORT).show()
+                        loadAudioFiles()
+                    } else {
+                        android.widget.Toast.makeText(requireContext(), "Failed to delete", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: Exception) {
+                    android.widget.Toast.makeText(requireContext(), "Error: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+    
+    private fun shareAudio(audio: VideoItem) {
+        try {
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                requireContext(),
+                "${requireContext().packageName}.fileprovider",
+                java.io.File(audio.path)
+            )
+            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = "audio/*"
+                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(android.content.Intent.createChooser(intent, "Share Audio"))
+        } catch (e: Exception) {
+            android.widget.Toast.makeText(requireContext(), "Cannot share this file", android.widget.Toast.LENGTH_SHORT).show()
+        }
     }
     
     private fun setupSwipeRefresh() {

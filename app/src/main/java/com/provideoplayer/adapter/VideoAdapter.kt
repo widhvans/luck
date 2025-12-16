@@ -126,9 +126,14 @@ class VideoAdapter(
 
             // Load thumbnail
             if (isAudio) {
-                // Use CD icon for audio files
-                thumbnail.setImageResource(R.drawable.ic_audio_cd)
-                thumbnail.scaleType = android.widget.ImageView.ScaleType.CENTER_INSIDE
+                // Try to load audio thumbnail (album art), fallback to CD icon
+                thumbnail.scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+                Glide.with(itemView.context)
+                    .load(video.uri)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .placeholder(R.drawable.ic_audio_cd)
+                    .error(R.drawable.ic_audio_cd)
+                    .into(thumbnail)
             } else {
                 // Load video thumbnail with Glide
                 Glide.with(itemView.context)
