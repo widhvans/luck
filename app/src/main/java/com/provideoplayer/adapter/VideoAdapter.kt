@@ -150,7 +150,13 @@ class VideoAdapter(
                         sizeView.setTypeface(null, android.graphics.Typeface.NORMAL)
                     } else {
                         sizeView.text = "● NEW"
-                        sizeView.setTextColor(android.graphics.Color.parseColor("#00BFFF"))
+                        val newColor = when (newTagColorType) {
+                            0 -> "#00E676" // Green for Videos
+                            1 -> "#00BCD4" // Cyan for Audio
+                            2 -> "#FF5722" // Orange for Browse
+                            else -> "#00E676"
+                        }
+                        sizeView.setTextColor(android.graphics.Color.parseColor(newColor))
                         sizeView.setTypeface(null, android.graphics.Typeface.BOLD)
                     }
                 } else {
@@ -163,7 +169,13 @@ class VideoAdapter(
                         sizeView.setTypeface(null, android.graphics.Typeface.NORMAL)
                     } else {
                         sizeView.text = "● NEW"
-                        sizeView.setTextColor(android.graphics.Color.parseColor("#00FF7F"))
+                        val newColor = when (newTagColorType) {
+                            0 -> "#00E676" // Green for Videos
+                            1 -> "#00BCD4" // Cyan for Audio
+                            2 -> "#FF5722" // Orange for Browse
+                            else -> "#00E676"
+                        }
+                        sizeView.setTextColor(android.graphics.Color.parseColor(newColor))
                         sizeView.setTypeface(null, android.graphics.Typeface.BOLD)
                     }
                 }
