@@ -152,47 +152,8 @@ class VideoAdapter(
             checkboxSelected?.visibility = if (isSelected(video)) View.VISIBLE else View.GONE
             
             // Handle size view if present (list view only)
-            size?.let { sizeView ->
-                if (isAudio) {
-                    val audioHistoryJson = prefs.getString("audio_history", "[]") ?: "[]"
-                    val isListened = isUriInHistory(audioHistoryJson, videoUri)
-                    
-                    if (isListened) {
-                        sizeView.text = video.getFormattedSize()
-                        sizeView.setTextColor(itemView.context.getColor(R.color.text_secondary))
-                        sizeView.setTypeface(null, android.graphics.Typeface.NORMAL)
-                    } else {
-                        sizeView.text = "● NEW"
-                        val newColor = when (newTagColorType) {
-                            0 -> "#9C27B0" // Purple for Videos (matches selection bar)
-                            1 -> "#00BCD4" // Cyan for Audio
-                            2 -> "#FF5722" // Orange for Browse
-                            else -> "#9C27B0"
-                        }
-                        sizeView.setTextColor(android.graphics.Color.parseColor(newColor))
-                        sizeView.setTypeface(null, android.graphics.Typeface.BOLD)
-                    }
-                } else {
-                    val historyJson = prefs.getString("video_history", "[]") ?: "[]"
-                    val isWatched = isUriInHistory(historyJson, videoUri)
-                    
-                    if (isWatched) {
-                        sizeView.text = video.getFormattedSize()
-                        sizeView.setTextColor(itemView.context.getColor(R.color.text_secondary))
-                        sizeView.setTypeface(null, android.graphics.Typeface.NORMAL)
-                    } else {
-                        sizeView.text = "● NEW"
-                        val newColor = when (newTagColorType) {
-                            0 -> "#9C27B0" // Purple for Videos (matches selection bar)
-                            1 -> "#00BCD4" // Cyan for Audio
-                            2 -> "#FF5722" // Orange for Browse
-                            else -> "#9C27B0"
-                        }
-                        sizeView.setTextColor(android.graphics.Color.parseColor(newColor))
-                        sizeView.setTypeface(null, android.graphics.Typeface.BOLD)
-                    }
-                }
-            }
+            // Always show size (removed NEW text replacement - NEW tag is on thumbnail)
+            size?.text = video.getFormattedSize()
 
             // Load thumbnail
             if (isAudio) {
