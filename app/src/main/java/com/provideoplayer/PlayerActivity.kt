@@ -758,10 +758,10 @@ class PlayerActivity : AppCompatActivity() {
                     android.util.Log.d("PlayerActivity", "Video ready - Duration: ${player?.duration}")
                 }
                 Player.STATE_ENDED -> {
-                    if (currentIndex < playlist.size - 1) {
-                        playNext()
-                    }
-                }
+            // Video ended - just pause and stay at end position (no loop, no auto-play next)
+            player?.pause()
+            stopLoadingAnimation()
+        }
                 Player.STATE_IDLE -> {
                     // Check if there's an error
                     player?.playerError?.let { error ->

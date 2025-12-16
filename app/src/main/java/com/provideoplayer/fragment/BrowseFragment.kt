@@ -569,6 +569,24 @@ class BrowseFragment : Fragment() {
         }
     }
     
+    override fun onResume() {
+        super.onResume()
+        // Restore UI state when returning to this tab (especially after tab switch)
+        if (!isShowingFolders && currentFolderName != null) {
+            // We're inside a folder, restore back button and title
+            (activity as? VideosFragment.TabHost)?.setBackEnabled(true)
+            (activity as? VideosFragment.TabHost)?.updateTitle(currentFolderName!!)
+            
+            // Ensure inline filter bar is visible
+            binding.inlineFilterBar.visibility = View.VISIBLE
+            binding.swipeRefresh.setPadding(0, 48.dpToPx(), 0, 0)
+        } else {
+            // At folder level
+            (activity as? VideosFragment.TabHost)?.setBackEnabled(false)
+            (activity as? VideosFragment.TabHost)?.updateTitle("Browse")
+        }
+    }
+    
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
