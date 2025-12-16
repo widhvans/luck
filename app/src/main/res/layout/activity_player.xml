@@ -349,18 +349,49 @@
 
     </LinearLayout>
 
-    <!-- Seek Indicator -->
-    <TextView
-        android:id="@+id/seekIndicator"
+    <!-- YouTube-style Seek Preview -->
+    <LinearLayout
+        android:id="@+id/seekPreviewContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:background="@drawable/bg_gesture_indicator"
+        android:gravity="center"
+        android:orientation="vertical"
         android:padding="12dp"
-        android:text="+10 sec"
-        android:textColor="@color/white"
-        android:textSize="16sp"
-        android:visibility="gone" />
+        android:visibility="gone">
+
+        <!-- Preview Thumbnail -->
+        <ImageView
+            android:id="@+id/seekPreviewThumbnail"
+            android:layout_width="160dp"
+            android:layout_height="90dp"
+            android:scaleType="centerCrop"
+            android:background="@color/surface_dark" />
+
+        <!-- Time Display -->
+        <TextView
+            android:id="@+id/seekPreviewTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="00:00 / 00:00"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <!-- Seek Delta -->
+        <TextView
+            android:id="@+id/seekIndicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="+10s"
+            android:textColor="@color/purple_500"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
 
     <!-- Buffering Progress - Rotating App Logo (Circular) -->
     <ImageView

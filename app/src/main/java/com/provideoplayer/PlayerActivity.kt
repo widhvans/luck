@@ -1194,8 +1194,9 @@ class PlayerActivity : AppCompatActivity() {
                 gestureType = GestureType.NONE
                 isPanning = false
                 seekAccumulator = 0L  // Reset seek accumulator
+                seekStartPosition = 0L  // Reset seek start position
                 hideGestureIndicator()
-                binding.seekIndicator.visibility = View.GONE  // Hide seek indicator
+                binding.seekPreviewContainer.visibility = View.GONE  // Hide seek preview
             }
             
             true
@@ -1543,23 +1544,76 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private var seekAccumulator: Long = 0L
+    private var seekStartPosition: Long = 0L
+    private var lastThumbnailUpdateTime: Long = 0L
     
     private fun adjustSeek(delta: Long) {
         player?.let { p ->
-            seekAccumulator += delta
-            val currentPos = p.currentPosition
             val duration = p.duration
             if (duration <= 0) return
             
-            // Show seek indicator with accumulated seek amount
+            // Initialize start position on first seek
+            if (seekAccumulator == 0L) {
+                seekStartPosition = p.currentPosition
+            }
+            
+            seekAccumulator += delta
+            
+            // Calculate target position
+            val targetPos = (seekStartPosition + seekAccumulator).coerceIn(0, duration)
+            
+            // Show seek preview container
+            binding.seekPreviewContainer.visibility = View.VISIBLE
+            
+            // Update seek delta text
             val seekSecs = seekAccumulator / 1000
             val sign = if (seekAccumulator >= 0) "+" else ""
             binding.seekIndicator.text = "${sign}${seekSecs}s"
-            binding.seekIndicator.visibility = View.VISIBLE
             
-            // Apply seek
-            val newPos = (currentPos + delta).coerceIn(0, duration)
-            p.seekTo(newPos)
+            // Update time display
+            binding.seekPreviewTime.text = "${formatTime(targetPos)} / ${formatTime(duration)}"
+            
+            // Load thumbnail (throttled to avoid lag)
+            val now = System.currentTimeMillis()
+            if (now - lastThumbnailUpdateTime > 100) {  // Update thumbnail every 100ms max
+                lastThumbnailUpdateTime = now
+                loadSeekThumbnail(targetPos)
+            }
+            
+            // Apply seek immediately for smooth preview
+            p.seekTo(targetPos)
+        }
+    }
+    
+    private fun loadSeekThumbnail(positionMs: Long) {
+        val currentUri = playlist.getOrNull(currentIndex) ?: return
+        
+        // For local files, try to get thumbnail
+        if (!currentUri.startsWith("http://") && !currentUri.startsWith("https://")) {
+            try {
+                val retriever = android.media.MediaMetadataRetriever()
+                retriever.setDataSource(this, android.net.Uri.parse(currentUri))
+                val bitmap = retriever.getFrameAtTime(positionMs * 1000, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                bitmap?.let {
+                    binding.seekPreviewThumbnail.setImageBitmap(it)
+                }
+                retriever.release()
+            } catch (e: Exception) {
+                // Ignore thumbnail errors
+            }
+        }
+    }
+    
+    private fun formatTime(ms: Long): String {
+        val totalSeconds = ms / 1000
+        val hours = totalSeconds / 3600
+        val minutes = (totalSeconds % 3600) / 60
+        val seconds = totalSeconds % 60
+        
+        return if (hours > 0) {
+            String.format("%d:%02d:%02d", hours, minutes, seconds)
+        } else {
+            String.format("%02d:%02d", minutes, seconds)
         }
     }
 
