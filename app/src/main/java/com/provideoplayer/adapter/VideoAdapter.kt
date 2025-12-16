@@ -126,10 +126,10 @@ class VideoAdapter(
                 !isUriInHistory(historyJson, videoUri)
             }
             
-            // Show NEW tag with tab-specific color
+            // Show NEW tag with tab-specific color (matching selection bar colors)
             newTag?.visibility = if (isNew) View.VISIBLE else View.GONE
             when (newTagColorType) {
-                0 -> newTag?.setBackgroundColor(android.graphics.Color.parseColor("#00E676")) // Green for Videos
+                0 -> newTag?.setBackgroundColor(android.graphics.Color.parseColor("#9C27B0")) // Purple for Videos (matches selection bar)
                 1 -> newTag?.setBackgroundColor(android.graphics.Color.parseColor("#00BCD4")) // Cyan for Audio
                 2 -> newTag?.setBackgroundColor(android.graphics.Color.parseColor("#FF5722")) // Orange for Browse
                 else -> newTag?.setBackgroundResource(R.drawable.bg_new_tag)
@@ -151,10 +151,10 @@ class VideoAdapter(
                     } else {
                         sizeView.text = "● NEW"
                         val newColor = when (newTagColorType) {
-                            0 -> "#00E676" // Green for Videos
+                            0 -> "#9C27B0" // Purple for Videos (matches selection bar)
                             1 -> "#00BCD4" // Cyan for Audio
                             2 -> "#FF5722" // Orange for Browse
-                            else -> "#00E676"
+                            else -> "#9C27B0"
                         }
                         sizeView.setTextColor(android.graphics.Color.parseColor(newColor))
                         sizeView.setTypeface(null, android.graphics.Typeface.BOLD)
@@ -170,10 +170,10 @@ class VideoAdapter(
                     } else {
                         sizeView.text = "● NEW"
                         val newColor = when (newTagColorType) {
-                            0 -> "#00E676" // Green for Videos
+                            0 -> "#9C27B0" // Purple for Videos (matches selection bar)
                             1 -> "#00BCD4" // Cyan for Audio
                             2 -> "#FF5722" // Orange for Browse
-                            else -> "#00E676"
+                            else -> "#9C27B0"
                         }
                         sizeView.setTextColor(android.graphics.Color.parseColor(newColor))
                         sizeView.setTypeface(null, android.graphics.Typeface.BOLD)
