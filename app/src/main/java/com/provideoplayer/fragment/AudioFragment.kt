@@ -142,8 +142,8 @@ class AudioFragment : Fragment() {
         if (count > 0) {
             binding.selectionBar.visibility = android.view.View.VISIBLE
             binding.selectionCount.text = "$count selected"
-            // Animate FAB up
-            mainFab?.animate()?.translationY(-80f)?.setDuration(200)?.start()
+            // Animate FAB up (move above bar)
+            mainFab?.animate()?.translationY(-160f)?.setDuration(200)?.start()
         } else {
             binding.selectionBar.visibility = android.view.View.GONE
             // Animate FAB back

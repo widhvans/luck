@@ -95,8 +95,8 @@ class VideosFragment : Fragment() {
         if (count > 0) {
             binding.selectionBar.visibility = View.VISIBLE
             binding.selectionCount.text = "$count selected"
-            // Animate FAB up to avoid overlap with selection bar
-            mainFab?.animate()?.translationY(-80f)?.setDuration(200)?.start()
+            // Animate FAB up to avoid overlap with selection bar (move above bar)
+            mainFab?.animate()?.translationY(-160f)?.setDuration(200)?.start()
         } else {
             binding.selectionBar.visibility = View.GONE
             // Animate FAB back to original position
