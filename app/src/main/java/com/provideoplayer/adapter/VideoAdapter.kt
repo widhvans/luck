@@ -21,11 +21,44 @@ class VideoAdapter(
     private val onVideoLongClick: (VideoItem) -> Boolean
 ) : ListAdapter<VideoItem, VideoAdapter.VideoViewHolder>(VideoDiffCallback()) {
 
+    companion object {
+        private const val VIEW_TYPE_GRID = 0
+        private const val VIEW_TYPE_LIST = 1
+        
+        /**
+         * Check if a URI exists in the history JSON array
+         */
+        fun isUriInHistory(historyJson: String, uri: String): Boolean {
+            return try {
+                val jsonArray = org.json.JSONArray(historyJson)
+                for (i in 0 until jsonArray.length()) {
+                    if (jsonArray.getString(i) == uri) {
+                        return true
+                    }
+                }
+                false
+            } catch (e: Exception) {
+                false
+            }
+        }
+    }
+
     // Set to true for list view, false for grid view
     var isListView: Boolean = false
+        set(value) {
+            if (field != value) {
+                field = value
+                // Force recreate all ViewHolders with new layout
+                notifyDataSetChanged()
+            }
+        }
+
+    override fun getItemViewType(position: Int): Int {
+        return if (isListView) VIEW_TYPE_LIST else VIEW_TYPE_GRID
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VideoViewHolder {
-        val layoutRes = if (isListView) R.layout.item_video_list else R.layout.item_video
+        val layoutRes = if (viewType == VIEW_TYPE_LIST) R.layout.item_video_list else R.layout.item_video
         val view = LayoutInflater.from(parent.context)
             .inflate(layoutRes, parent, false)
         return VideoViewHolder(view)
@@ -129,25 +162,6 @@ class VideoAdapter(
         override fun areContentsTheSame(oldItem: VideoItem, newItem: VideoItem): Boolean {
             // Always return false to force rebind - this ensures NEW tag updates after history changes
             return false
-        }
-    }
-    
-    companion object {
-        /**
-         * Check if a URI exists in the history JSON array
-         */
-        fun isUriInHistory(historyJson: String, uri: String): Boolean {
-            return try {
-                val jsonArray = org.json.JSONArray(historyJson)
-                for (i in 0 until jsonArray.length()) {
-                    if (jsonArray.getString(i) == uri) {
-                        return true
-                    }
-                }
-                false
-            } catch (e: Exception) {
-                false
-            }
         }
     }
 }
