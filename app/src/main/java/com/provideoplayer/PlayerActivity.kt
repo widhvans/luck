@@ -758,10 +758,28 @@ class PlayerActivity : AppCompatActivity() {
                     android.util.Log.d("PlayerActivity", "Video ready - Duration: ${player?.duration}")
                 }
                 Player.STATE_ENDED -> {
-            // Video ended - just pause and stay at end position (no loop, no auto-play next)
-            player?.pause()
-            stopLoadingAnimation()
-        }
+                    // Video ended - ROBUST handling to prevent any loop/restart
+                    android.util.Log.d("PlayerActivity", "Video ENDED - stopping playback completely")
+                    
+                    player?.let { p ->
+                        // 1. First pause playback
+                        p.pause()
+                        
+                        // 2. Stop progress updates
+                        stopLoadingAnimation()
+                        
+                        // 3. Seek to last position (1ms before end to prevent auto-restart)
+                        val duration = p.duration
+                        if (duration > 0) {
+                            p.seekTo(duration - 1)
+                        }
+                        
+                        // 4. Update UI to show paused state
+                        binding.progressBar.visibility = View.GONE
+                        showControls()
+                        updatePlayPauseButton()
+                    }
+                }
                 Player.STATE_IDLE -> {
                     // Check if there's an error
                     player?.playerError?.let { error ->
