@@ -1384,8 +1384,9 @@ class PlayerActivity : AppCompatActivity() {
             if (it.isPlaying) {
                 it.pause()
             } else {
-                // If video has ended, restart from beginning
-                if (videoHasEnded) {
+                // If video has ended OR position is at end, restart from beginning
+                val isAtEnd = videoHasEnded || (it.duration > 0 && it.currentPosition >= it.duration - 500)
+                if (isAtEnd) {
                     it.seekTo(0)
                     videoHasEnded = false  // Clear the flag after restart
                 }
@@ -1397,10 +1398,16 @@ class PlayerActivity : AppCompatActivity() {
     private fun updatePlayPauseButton() {
         player?.let { p ->
             val isPlaying = p.isPlaying
+            val duration = p.duration
+            val position = p.currentPosition
             
-            // Use the videoHasEnded flag for 100% reliable detection
+            // Show restart icon if:
+            // 1. videoHasEnded flag is true (from STATE_ENDED), OR
+            // 2. position is at or very near end (within 500ms of duration)
+            val isAtEnd = videoHasEnded || (duration > 0 && position >= duration - 500)
+            
             val iconRes = when {
-                videoHasEnded && !isPlaying -> R.drawable.ic_restart  // Show restart icon when video ended
+                isAtEnd && !isPlaying -> R.drawable.ic_restart  // Show restart icon when at end
                 isPlaying -> R.drawable.ic_pause
                 else -> R.drawable.ic_play
             }
