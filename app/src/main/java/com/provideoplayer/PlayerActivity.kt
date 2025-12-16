@@ -905,7 +905,20 @@ class PlayerActivity : AppCompatActivity() {
         }
         
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-            android.util.Log.d("PlayerActivity", "Media item transition - URI: ${mediaItem?.localConfiguration?.uri}")
+            android.util.Log.d("PlayerActivity", "Media item transition - reason: $reason, URI: ${mediaItem?.localConfiguration?.uri}")
+            
+            // PREVENT AUTO-ADVANCE: If this transition was automatic (not user-triggered), stop it
+            if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
+                android.util.Log.d("PlayerActivity", "Blocking auto-advance to next video")
+                // Go back to previous video and pause
+                player?.let { p ->
+                    val previousIndex = (currentIndex).coerceIn(0, playlist.size - 1)
+                    p.pause()
+                    p.seekTo(previousIndex, p.duration - 1)
+                }
+                return  // Don't update UI for blocked transition
+            }
+            
             currentIndex = player?.currentMediaItemIndex ?: 0
             binding.videoTitle.text = playlistTitles.getOrNull(currentIndex) ?: "Video"
             updatePrevNextButtons()
