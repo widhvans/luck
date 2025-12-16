@@ -2091,17 +2091,14 @@ class PlayerActivity : AppCompatActivity() {
             isPipMode = false
             addLog("PiP: Exiting PiP mode - isFinishing: $isFinishing")
             
-            // Check multiple conditions to determine if PiP was dismissed (not expanded)
-            // When user swipes away PiP, sometimes isFinishing is false but activity is being destroyed
-            val isPipClosedByUser = isFinishing || !hasWindowFocus() || isDestroyed
-            
-            if (isPipClosedByUser) {
-                // User closed PiP by swiping away - stop player IMMEDIATELY
+            // Only finish if activity is actually finishing (user swiped away PiP)
+            // When user taps to maximize, isFinishing will be false
+            if (isFinishing) {
+                // User closed PiP by swiping away - stop player
                 wasInPipMode = false
                 addLog("PiP: Closed by user - stopping player")
                 player?.pause()
                 player?.stop()
-                finish()  // Finish the activity
             } else {
                 // User tapped PiP to return to full screen - restore UI
                 wasInPipMode = false
