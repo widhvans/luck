@@ -1,0 +1,202 @@
+package com.provideoplayer.fragment
+
+import android.content.Context
+import android.content.Intent
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.provideoplayer.PlayerActivity
+import com.provideoplayer.R
+import com.provideoplayer.adapter.VideoAdapter
+import com.provideoplayer.databinding.FragmentAudioBinding
+import com.provideoplayer.model.VideoItem
+import com.provideoplayer.utils.VideoScanner
+import kotlinx.coroutines.launch
+
+class AudioFragment : Fragment() {
+    
+    private var _binding: FragmentAudioBinding? = null
+    private val binding get() = _binding!!
+    
+    private lateinit var videoAdapter: VideoAdapter
+    private var allAudioFiles: List<VideoItem> = emptyList()
+    
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentAudioBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+    
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        setupRecyclerView()
+        setupSwipeRefresh()
+        loadAudioFiles()
+    }
+    
+    private fun setupRecyclerView() {
+        videoAdapter = VideoAdapter(
+            onVideoClick = { audio, position ->
+                openPlayer(audio, position)
+            },
+            onVideoLongClick = { audio ->
+                showAudioInfo(audio)
+                true
+            }
+        )
+        
+        binding.recyclerView.apply {
+            adapter = videoAdapter
+            setHasFixedSize(true)
+        }
+        applyLayoutPreference()
+    }
+    
+    private fun setupSwipeRefresh() {
+        binding.swipeRefresh.setColorSchemeResources(
+            R.color.purple_500,
+            R.color.purple_700,
+            R.color.teal_200
+        )
+        binding.swipeRefresh.setOnRefreshListener {
+            loadAudioFiles()
+        }
+    }
+    
+    private fun applyLayoutPreference() {
+        val prefs = requireContext().getSharedPreferences("pro_video_player_prefs", Context.MODE_PRIVATE)
+        val isGrid = prefs.getBoolean("is_grid_view", true)
+        
+        binding.recyclerView.layoutManager = if (isGrid) {
+            GridLayoutManager(requireContext(), 2)
+        } else {
+            LinearLayoutManager(requireContext())
+        }
+        videoAdapter.isListView = !isGrid
+    }
+    
+    fun loadAudioFiles() {
+        if (!isAdded) return
+        
+        binding.progressBar.visibility = View.VISIBLE
+        binding.emptyView.visibility = View.GONE
+        
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                allAudioFiles = VideoScanner.getAllAudio(requireContext())
+                binding.swipeRefresh.isRefreshing = false
+                binding.progressBar.visibility = View.GONE
+                
+                (activity as? VideosFragment.TabHost)?.updateSubtitle("${allAudioFiles.size} audio files")
+                
+                if (allAudioFiles.isEmpty()) {
+                    binding.recyclerView.visibility = View.GONE
+                    binding.emptyView.visibility = View.VISIBLE
+                    binding.emptyText.text = "No audio files found"
+                } else {
+                    binding.emptyView.visibility = View.GONE
+                    binding.recyclerView.visibility = View.VISIBLE
+                    videoAdapter.submitList(allAudioFiles)
+                }
+            } catch (e: Exception) {
+                binding.swipeRefresh.isRefreshing = false
+                binding.progressBar.visibility = View.GONE
+                binding.recyclerView.visibility = View.GONE
+                binding.emptyView.visibility = View.VISIBLE
+                binding.emptyText.text = "Error loading audio files"
+            }
+        }
+    }
+    
+    private fun openPlayer(audio: VideoItem, position: Int) {
+        val context = requireContext()
+        
+        // Save to audio history
+        saveAudioToHistory(audio.uri.toString())
+        
+        val playlist = videoAdapter.currentList.toList()
+        val audioIndex = playlist.indexOfFirst { it.id == audio.id }.takeIf { it >= 0 } ?: position
+        
+        val intent = Intent(context, PlayerActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(PlayerActivity.EXTRA_VIDEO_URI, audio.uri.toString())
+            putExtra(PlayerActivity.EXTRA_VIDEO_TITLE, audio.title)
+            putExtra(PlayerActivity.EXTRA_VIDEO_POSITION, audioIndex)
+            putStringArrayListExtra(
+                PlayerActivity.EXTRA_PLAYLIST,
+                ArrayList(playlist.map { it.uri.toString() })
+            )
+            putStringArrayListExtra(
+                PlayerActivity.EXTRA_PLAYLIST_TITLES,
+                ArrayList(playlist.map { it.title })
+            )
+        }
+        startActivity(intent)
+    }
+    
+    private fun saveAudioToHistory(uri: String) {
+        val prefs = requireContext().getSharedPreferences("pro_video_player_prefs", Context.MODE_PRIVATE)
+        val historyJson = prefs.getString("audio_history", "[]") ?: "[]"
+        
+        val historyArray = try {
+            org.json.JSONArray(historyJson)
+        } catch (e: Exception) {
+            org.json.JSONArray()
+        }
+        
+        val newArray = org.json.JSONArray()
+        for (i in 0 until historyArray.length()) {
+            val existingUri = historyArray.getString(i)
+            if (existingUri != uri) {
+                newArray.put(existingUri)
+            }
+        }
+        newArray.put(uri)
+        
+        val finalArray = org.json.JSONArray()
+        val startIndex = if (newArray.length() > 50) newArray.length() - 50 else 0
+        for (i in startIndex until newArray.length()) {
+            finalArray.put(newArray.getString(i))
+        }
+        
+        prefs.edit()
+            .putString("audio_history", finalArray.toString())
+            .apply()
+    }
+    
+    private fun showAudioInfo(audio: VideoItem) {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle(audio.title)
+            .setMessage("""
+                📁 Folder: ${audio.folderName}
+                ⏱️ Duration: ${audio.getFormattedDuration()}
+                📊 Size: ${audio.getFormattedSize()}
+                📂 Path: ${audio.path}
+            """.trimIndent())
+            .setPositiveButton("Play") { _, _ ->
+                openPlayer(audio, 0)
+            }
+            .setNegativeButton("Close", null)
+            .show()
+    }
+    
+    fun refreshData() {
+        if (isAdded && _binding != null) {
+            applyLayoutPreference()
+            loadAudioFiles()
+        }
+    }
+    
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}
