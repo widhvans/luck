@@ -768,16 +768,30 @@ class PlayerActivity : AppCompatActivity() {
                         // 2. Stop progress updates
                         stopLoadingAnimation()
                         
-                        // 3. Seek to last position (1ms before end to prevent auto-restart)
-                        val duration = p.duration
-                        if (duration > 0) {
-                            p.seekTo(duration - 1)
+                        // 3. CLEAR the saved position immediately (set to 0)
+                        val currentUri = playlist.getOrNull(currentIndex) ?: ""
+                        if (currentUri.isNotEmpty()) {
+                            val prefs = getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
+                            val positionsJson = prefs.getString("video_positions", "{}") ?: "{}"
+                            val positionsObj = try {
+                                org.json.JSONObject(positionsJson)
+                            } catch (e: Exception) {
+                                org.json.JSONObject()
+                            }
+                            // Set position to 0 for this video
+                            val uriKey = currentUri.hashCode().toString()
+                            positionsObj.put(uriKey, 0L)
+                            prefs.edit()
+                                .putString("video_positions", positionsObj.toString())
+                                .putLong("last_video_position", 0L)
+                                .apply()
+                            android.util.Log.d("PlayerActivity", "Cleared saved position for completed video")
                         }
                         
-                        // 4. Update UI to show paused state
+                        // 4. Update UI to show RESTART icon (not play icon)
                         binding.progressBar.visibility = View.GONE
                         showControls()
-                        updatePlayPauseButton()
+                        updatePlayPauseButton()  // This will now show restart icon
                     }
                 }
                 Player.STATE_IDLE -> {
