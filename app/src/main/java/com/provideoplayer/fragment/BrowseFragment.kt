@@ -163,7 +163,7 @@ class BrowseFragment : Fragment() {
     private fun showBrowseMedia() {
         isShowingFolders = true
         binding.recyclerView.adapter = folderAdapter
-        binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        applyFolderLayoutPreference()
         
         val filteredFolders = when (browseFilter) {
             1 -> {
@@ -297,6 +297,17 @@ class BrowseFragment : Fragment() {
         videoAdapter.isListView = !isGrid
     }
     
+    private fun applyFolderLayoutPreference() {
+        val prefs = requireContext().getSharedPreferences("pro_video_player_prefs", Context.MODE_PRIVATE)
+        val isGrid = prefs.getBoolean("is_grid_view", true)
+        
+        binding.recyclerView.layoutManager = if (isGrid) {
+            GridLayoutManager(requireContext(), 2)
+        } else {
+            LinearLayoutManager(requireContext())
+        }
+    }
+    
     private fun openPlayer(video: VideoItem, position: Int) {
         val context = requireContext()
         val isAudio = video.mimeType.startsWith("audio") ||
@@ -425,7 +436,20 @@ class BrowseFragment : Fragment() {
     
     fun refreshData() {
         if (isAdded && _binding != null) {
-            loadData()
+            // Apply layout based on current view
+            if (isShowingFolders) {
+                applyFolderLayoutPreference()
+                // Just refresh layout, no need to reload all data
+                val currentList = folderAdapter.currentList.toList()
+                folderAdapter.submitList(null)
+                folderAdapter.submitList(currentList)
+            } else {
+                applyLayoutPreference()
+                // Just refresh layout
+                val currentList = videoAdapter.currentList.toList()
+                videoAdapter.submitList(null)
+                videoAdapter.submitList(currentList)
+            }
         }
     }
     
