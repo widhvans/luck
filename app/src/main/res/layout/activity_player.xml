@@ -356,7 +356,8 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
         android:layout_marginBottom="120dp"
-        android:background="@drawable/bg_gesture_indicator"
+        android:background="@drawable/bg_seek_preview"
+        android:elevation="8dp"
         android:gravity="center"
         android:orientation="vertical"
         android:padding="10dp"
@@ -368,7 +369,7 @@
             android:layout_width="160dp"
             android:layout_height="90dp"
             android:scaleType="centerCrop"
-            android:background="@color/surface_dark" />
+            android:background="#FF333333" />
 
         <!-- Time Display -->
         <TextView
@@ -377,7 +378,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="00:00 / 00:00"
-            android:textColor="@color/white"
+            android:textColor="#FF222222"
             android:textSize="14sp"
             android:textStyle="bold" />
 

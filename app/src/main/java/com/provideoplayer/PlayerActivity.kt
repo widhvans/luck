@@ -1573,6 +1573,10 @@ class PlayerActivity : AppCompatActivity() {
             // Update time display
             binding.seekPreviewTime.text = "${formatTime(targetPos)} / ${formatTime(duration)}"
             
+            // Update duration bar and current time to follow seek
+            binding.seekBar.progress = ((targetPos.toFloat() / duration.toFloat()) * 1000).toInt()
+            binding.currentTime.text = formatTime(targetPos)
+            
             // Position preview above progress bar thumb
             val progress = targetPos.toFloat() / duration.toFloat()
             val previewWidth = binding.seekPreviewContainer.width.takeIf { it > 0 } ?: 180
