@@ -6,6 +6,7 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.provideoplayer.fragment.AudioFragment
 import com.provideoplayer.fragment.BrowseFragment
 import com.provideoplayer.fragment.PlaylistFragment
+import com.provideoplayer.fragment.StreamFragment
 import com.provideoplayer.fragment.VideosFragment
 
 class MainPagerAdapter(fragmentActivity: FragmentActivity) : FragmentStateAdapter(fragmentActivity) {
@@ -13,7 +14,7 @@ class MainPagerAdapter(fragmentActivity: FragmentActivity) : FragmentStateAdapte
     // Store fragment references for later access
     private val fragments = mutableMapOf<Int, Fragment>()
     
-    override fun getItemCount(): Int = 4  // Videos, Audio, Browse, Playlist (Network is dialog)
+    override fun getItemCount(): Int = 5  // Videos, Audio, Browse, Playlist, Stream (all swipeable now)
     
     override fun createFragment(position: Int): Fragment {
         val fragment = when (position) {
@@ -21,6 +22,7 @@ class MainPagerAdapter(fragmentActivity: FragmentActivity) : FragmentStateAdapte
             1 -> AudioFragment()
             2 -> BrowseFragment()
             3 -> PlaylistFragment()
+            4 -> StreamFragment()
             else -> VideosFragment()
         }
         fragments[position] = fragment
@@ -33,4 +35,5 @@ class MainPagerAdapter(fragmentActivity: FragmentActivity) : FragmentStateAdapte
     fun getAudioFragment(): AudioFragment? = fragments[1] as? AudioFragment
     fun getBrowseFragment(): BrowseFragment? = fragments[2] as? BrowseFragment
     fun getPlaylistFragment(): PlaylistFragment? = fragments[3] as? PlaylistFragment
+    fun getStreamFragment(): StreamFragment? = fragments[4] as? StreamFragment
 }

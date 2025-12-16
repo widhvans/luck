@@ -97,6 +97,7 @@ class MainActivity : AppCompatActivity(), VideosFragment.TabHost {
                     1 -> "Audio"
                     2 -> "Browse"
                     3 -> "Playlist"
+                    4 -> "Stream"
                     else -> getString(R.string.app_name)
                 }
                 
@@ -133,8 +134,9 @@ class MainActivity : AppCompatActivity(), VideosFragment.TabHost {
                     true
                 }
                 R.id.nav_network -> {
-                    // Network stream opens a dialog/activity, doesn't need fragment
-                    openNetworkStreamDialog()
+                    // Stream tab is now swipeable
+                    binding.viewPager.setCurrentItem(4, true)
+                    supportActionBar?.title = "Stream"
                     true
                 }
                 else -> false

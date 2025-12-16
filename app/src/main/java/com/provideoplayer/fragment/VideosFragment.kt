@@ -229,16 +229,10 @@ class VideosFragment : Fragment() {
     
     override fun onResume() {
         super.onResume()
-        // Refresh to update NEW tags
+        // Refresh to update NEW tags without causing blink
         if (_binding != null && allVideos.isNotEmpty()) {
-            val scrollPosition = binding.recyclerView.layoutManager?.onSaveInstanceState()
-            val currentList = videoAdapter.currentList.toList()
-            videoAdapter.submitList(null)
-            videoAdapter.submitList(currentList) {
-                scrollPosition?.let {
-                    binding.recyclerView.layoutManager?.onRestoreInstanceState(it)
-                }
-            }
+            // Just notify adapter of data changes without clearing list
+            videoAdapter.notifyDataSetChanged()
         }
     }
     

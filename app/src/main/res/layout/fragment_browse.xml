@@ -64,7 +64,7 @@
             android:background="?selectableItemBackgroundBorderless"
             android:contentDescription="Search"
             android:padding="8dp"
-            app:tint="?colorOnSurface" />
+            app:tint="@color/white" />
 
     </LinearLayout>
 
