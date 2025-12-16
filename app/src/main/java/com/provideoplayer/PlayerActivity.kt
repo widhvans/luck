@@ -1508,9 +1508,9 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun adjustBrightness(delta: Float) {
-        // Reduced sensitivity factor (0.3) for smoother, slower adjustments
-        val sensitivity = 0.3f
-        currentBrightness = (currentBrightness + delta * sensitivity).coerceIn(0.01f, 1f)
+    // Lower sensitivity (0.15) for professional, precise adjustments
+    val sensitivity = 0.15f
+    currentBrightness = (currentBrightness + delta * sensitivity).coerceIn(0.01f, 1f)
         
         val layoutParams = window.attributes
         layoutParams.screenBrightness = currentBrightness
@@ -1520,9 +1520,9 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun adjustVolume(delta: Float) {
-        // Reduced sensitivity factor (0.3) for smoother, slower adjustments
-        val sensitivity = 0.3f
-        val volumeChange = (delta * maxVolume * sensitivity).toInt()
+    // Lower sensitivity (0.15) for professional, precise adjustments
+    val sensitivity = 0.15f
+    val volumeChange = (delta * maxVolume * sensitivity).toInt()
         val newVolume = (currentVolume + volumeChange).coerceIn(0, maxVolume)
         currentVolume = newVolume
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0)

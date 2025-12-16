@@ -309,22 +309,22 @@
 
     </FrameLayout>
 
-    <!-- Gesture Indicator -->
+    <!-- Gesture Indicator - Professional look -->
     <LinearLayout
         android:id="@+id/gestureIndicator"
-        android:layout_width="120dp"
+        android:layout_width="160dp"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:background="@drawable/bg_gesture_indicator"
         android:gravity="center"
         android:orientation="vertical"
-        android:padding="16dp"
+        android:padding="20dp"
         android:visibility="gone">
 
         <ImageView
             android:id="@+id/gestureIcon"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:src="@drawable/ic_brightness"
             app:tint="@color/white" />
 
@@ -332,8 +332,8 @@
             android:id="@+id/gestureProgress"
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
-            android:layout_height="4dp"
-            android:layout_marginTop="8dp"
+            android:layout_height="8dp"
+            android:layout_marginTop="12dp"
             android:max="100"
             android:progressTint="@color/purple_500" />
 
@@ -341,10 +341,11 @@
             android:id="@+id/gestureText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="8dp"
             android:text="50%"
             android:textColor="@color/white"
-            android:textSize="14sp" />
+            android:textSize="16sp"
+            android:textStyle="bold" />
 
     </LinearLayout>
 
