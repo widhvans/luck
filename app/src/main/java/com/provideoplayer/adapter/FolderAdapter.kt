@@ -41,6 +41,7 @@ class FolderAdapter(
             
             // Show count with appropriate label based on media type
             val label = when (mediaType) {
+                0 -> "media"
                 2 -> "audio"
                 else -> "videos"
             }

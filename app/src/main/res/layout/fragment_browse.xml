@@ -5,47 +5,122 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Filter Bar -->
+    <!-- Inline Filter Bar (only visible inside folders) -->
     <LinearLayout
-        android:id="@+id/filterBar"
+        android:id="@+id/inlineFilterBar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="48dp"
         android:orientation="horizontal"
-        android:gravity="center"
-        android:padding="8dp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="8dp"
         android:background="?colorSurface"
-        android:elevation="2dp">
+        android:elevation="2dp"
+        android:visibility="gone">
 
-        <com.google.android.material.button.MaterialButton
+        <!-- All (default) -->
+        <ImageButton
+            android:id="@+id/btnFilterAll"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_browse"
+            android:background="?selectableItemBackgroundBorderless"
+            android:contentDescription="All Media"
+            android:padding="8dp"
+            app:tint="?colorPrimary" />
+
+        <!-- Video filter -->
+        <ImageButton
             android:id="@+id/btnFilterVideo"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="wrap_content"
+            android:layout_width="40dp"
             android:layout_height="40dp"
-            android:layout_marginEnd="8dp"
-            android:text="Videos"
-            app:icon="@drawable/ic_video"
-            app:iconGravity="textStart"
-            app:iconSize="18dp"
-            app:cornerRadius="20dp" />
+            android:src="@drawable/ic_video"
+            android:background="?selectableItemBackgroundBorderless"
+            android:contentDescription="Videos Only"
+            android:padding="8dp"
+            app:tint="?colorOnSurface" />
 
-        <com.google.android.material.button.MaterialButton
+        <!-- Audio filter -->
+        <ImageButton
             android:id="@+id/btnFilterAudio"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="wrap_content"
+            android:layout_width="40dp"
             android:layout_height="40dp"
-            android:text="Audio"
-            app:icon="@drawable/ic_audio"
-            app:iconGravity="textStart"
-            app:iconSize="18dp"
-            app:cornerRadius="20dp" />
+            android:src="@drawable/ic_audio"
+            android:background="?selectableItemBackgroundBorderless"
+            android:contentDescription="Audio Only"
+            android:padding="8dp"
+            app:tint="?colorOnSurface" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <!-- Search -->
+        <ImageButton
+            android:id="@+id/btnSearch"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_search"
+            android:background="?selectableItemBackgroundBorderless"
+            android:contentDescription="Search"
+            android:padding="8dp"
+            app:tint="?colorOnSurface" />
+
+    </LinearLayout>
+
+    <!-- Search Bar (hidden by default, shown when search icon tapped) -->
+    <LinearLayout
+        android:id="@+id/searchBar"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="8dp"
+        android:background="?colorSurface"
+        android:elevation="2dp"
+        android:visibility="gone">
+
+        <ImageButton
+            android:id="@+id/btnCloseSearch"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_back"
+            android:background="?selectableItemBackgroundBorderless"
+            android:contentDescription="Close Search"
+            android:padding="8dp"
+            app:tint="?colorOnSurface" />
+
+        <EditText
+            android:id="@+id/searchEditText"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:hint="Search in folder..."
+            android:textColorHint="?android:textColorSecondary"
+            android:textColor="?colorOnSurface"
+            android:background="@android:color/transparent"
+            android:inputType="text"
+            android:imeOptions="actionSearch"
+            android:maxLines="1"
+            android:paddingHorizontal="8dp" />
+
+        <ImageButton
+            android:id="@+id/btnClearSearch"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_close"
+            android:background="?selectableItemBackgroundBorderless"
+            android:contentDescription="Clear Search"
+            android:padding="8dp"
+            android:visibility="gone"
+            app:tint="?colorOnSurface" />
 
     </LinearLayout>
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipeRefresh"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginTop="56dp">
+        android:layout_height="match_parent">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerView"

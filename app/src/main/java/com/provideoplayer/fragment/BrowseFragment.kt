@@ -3,9 +3,14 @@ package com.provideoplayer.fragment
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
@@ -32,11 +37,16 @@ class BrowseFragment : Fragment() {
     private var allAudioFiles: List<VideoItem> = emptyList()
     private var allFolders: List<FolderItem> = emptyList()
     
-    private var browseFilter = 1  // 1=Videos, 2=Audio
+    // 0=All, 1=Videos, 2=Audio (now only used inside folders)
+    private var inFolderFilter = 0
     private var isShowingFolders = true
     private var currentFolderId: Long? = null
     private var currentFolderPath: String? = null
-    private var currentFolderName: String? = null  // Store folder name for filter switch
+    private var currentFolderName: String? = null
+    
+    // Current folder content (unfiltered)
+    private var currentFolderMedia: List<VideoItem> = emptyList()
+    private var searchQuery: String = ""
     
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -51,7 +61,8 @@ class BrowseFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         setupRecyclerView()
         setupSwipeRefresh()
-        setupFilterButtons()
+        setupInlineFilterBar()
+        setupSearchBar()
         loadData()
     }
     
@@ -72,7 +83,6 @@ class BrowseFragment : Fragment() {
         
         binding.recyclerView.apply {
             setHasFixedSize(true)
-            // Set item animator to null for smoother transitions
             itemAnimator = null
         }
     }
@@ -88,99 +98,110 @@ class BrowseFragment : Fragment() {
         }
     }
     
-    private fun setupFilterButtons() {
-        updateFilterButtonStyles()
+    private fun setupInlineFilterBar() {
+        // All filter (default)
+        binding.btnFilterAll.setOnClickListener {
+            if (inFolderFilter == 0) return@setOnClickListener
+            inFolderFilter = 0
+            updateFilterIconStyles()
+            applyInFolderFilter()
+        }
         
+        // Video filter
         binding.btnFilterVideo.setOnClickListener {
-            if (browseFilter == 1) return@setOnClickListener  // Already on video filter
-            
-            val previousFilter = browseFilter
-            browseFilter = 1
-            updateFilterButtonStyles()
-            
-            // If we're inside a folder, stay inside but switch content type
-            if (!isShowingFolders && currentFolderPath != null) {
-                switchFilterInFolder()
-            } else {
-                // At folder level, just refresh folder list
-                showBrowseMedia()
-            }
+            if (inFolderFilter == 1) return@setOnClickListener
+            inFolderFilter = 1
+            updateFilterIconStyles()
+            applyInFolderFilter()
         }
         
+        // Audio filter
         binding.btnFilterAudio.setOnClickListener {
-            if (browseFilter == 2) return@setOnClickListener  // Already on audio filter
-            
-            val previousFilter = browseFilter
-            browseFilter = 2
-            updateFilterButtonStyles()
-            
-            // If we're inside a folder, stay inside but switch content type
-            if (!isShowingFolders && currentFolderPath != null) {
-                switchFilterInFolder()
-            } else {
-                // At folder level, just refresh folder list
-                showBrowseMedia()
-            }
+            if (inFolderFilter == 2) return@setOnClickListener
+            inFolderFilter = 2
+            updateFilterIconStyles()
+            applyInFolderFilter()
         }
-    }
-    
-    /**
-     * Switch filter while staying inside the current folder
-     */
-    private fun switchFilterInFolder() {
-        // Clear RecyclerView pool to prevent thumbnail glitches
-        binding.recyclerView.recycledViewPool.clear()
         
-        if (browseFilter == 2) {
-            // Switching to audio filter
-            showAudioInFolder(currentFolderPath!!)
-        } else {
-            // Switching to video filter - need to find matching folder
-            if (currentFolderId != null) {
-                showVideosInFolder(currentFolderId!!)
+        // Search button
+        binding.btnSearch.setOnClickListener {
+            showSearchBar()
+        }
+    }
+    
+    private fun setupSearchBar() {
+        // Close search
+        binding.btnCloseSearch.setOnClickListener {
+            hideSearchBar()
+        }
+        
+        // Clear search text
+        binding.btnClearSearch.setOnClickListener {
+            binding.searchEditText.text.clear()
+        }
+        
+        // Search text change listener
+        binding.searchEditText.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                searchQuery = s?.toString() ?: ""
+                binding.btnClearSearch.visibility = if (searchQuery.isNotEmpty()) View.VISIBLE else View.GONE
+                applyInFolderFilter()
+            }
+        })
+        
+        // Search action
+        binding.searchEditText.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                hideKeyboard()
+                true
             } else {
-                // Try to find folder by path
-                val matchingFolder = allFolders.find { it.path == currentFolderPath }
-                if (matchingFolder != null) {
-                    currentFolderId = matchingFolder.id
-                    showVideosInFolder(matchingFolder.id)
-                } else {
-                    // Fallback to folder list
-                    currentFolderPath = null
-                    currentFolderName = null
-                    (activity as? VideosFragment.TabHost)?.setBackEnabled(false)
-                    (activity as? VideosFragment.TabHost)?.updateTitle("Browse")
-                    showBrowseMedia()
-                }
+                false
             }
         }
     }
     
-    private fun updateFilterButtonStyles() {
+    private fun showSearchBar() {
+        binding.inlineFilterBar.visibility = View.GONE
+        binding.searchBar.visibility = View.VISIBLE
+        binding.searchEditText.requestFocus()
+        showKeyboard()
+    }
+    
+    private fun hideSearchBar() {
+        searchQuery = ""
+        binding.searchEditText.text.clear()
+        binding.searchBar.visibility = View.GONE
+        binding.inlineFilterBar.visibility = View.VISIBLE
+        hideKeyboard()
+        applyInFolderFilter()
+    }
+    
+    private fun showKeyboard() {
+        val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.showSoftInput(binding.searchEditText, InputMethodManager.SHOW_IMPLICIT)
+    }
+    
+    private fun hideKeyboard() {
+        val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(binding.searchEditText.windowToken, 0)
+    }
+    
+    private fun updateFilterIconStyles() {
         val context = requireContext()
+        val activeColor = ContextCompat.getColor(context, R.color.purple_500)
+        val inactiveColor = ContextCompat.getColor(context, R.color.text_secondary)
         
-        binding.btnFilterVideo.strokeWidth = if (browseFilter == 1) 0 else 2
-        binding.btnFilterAudio.strokeWidth = if (browseFilter == 2) 0 else 2
-        
-        if (browseFilter == 1) {
-            binding.btnFilterVideo.setBackgroundColor(context.getColor(R.color.purple_500))
-            binding.btnFilterVideo.setTextColor(context.getColor(R.color.white))
-            binding.btnFilterVideo.iconTint = android.content.res.ColorStateList.valueOf(context.getColor(R.color.white))
-        } else {
-            binding.btnFilterVideo.setBackgroundColor(android.graphics.Color.TRANSPARENT)
-            binding.btnFilterVideo.setTextColor(context.getColor(R.color.purple_500))
-            binding.btnFilterVideo.iconTint = android.content.res.ColorStateList.valueOf(context.getColor(R.color.purple_500))
-        }
-        
-        if (browseFilter == 2) {
-            binding.btnFilterAudio.setBackgroundColor(context.getColor(R.color.purple_500))
-            binding.btnFilterAudio.setTextColor(context.getColor(R.color.white))
-            binding.btnFilterAudio.iconTint = android.content.res.ColorStateList.valueOf(context.getColor(R.color.white))
-        } else {
-            binding.btnFilterAudio.setBackgroundColor(android.graphics.Color.TRANSPARENT)
-            binding.btnFilterAudio.setTextColor(context.getColor(R.color.purple_500))
-            binding.btnFilterAudio.iconTint = android.content.res.ColorStateList.valueOf(context.getColor(R.color.purple_500))
-        }
+        binding.btnFilterAll.imageTintList = android.content.res.ColorStateList.valueOf(
+            if (inFolderFilter == 0) activeColor else inactiveColor
+        )
+        binding.btnFilterVideo.imageTintList = android.content.res.ColorStateList.valueOf(
+            if (inFolderFilter == 1) activeColor else inactiveColor
+        )
+        binding.btnFilterAudio.imageTintList = android.content.res.ColorStateList.valueOf(
+            if (inFolderFilter == 2) activeColor else inactiveColor
+        )
     }
     
     private fun loadData() {
@@ -197,7 +218,7 @@ class BrowseFragment : Fragment() {
                 binding.swipeRefresh.isRefreshing = false
                 binding.progressBar.visibility = View.GONE
                 
-                showBrowseMedia()
+                showAllFolders()
             } catch (e: Exception) {
                 binding.swipeRefresh.isRefreshing = false
                 binding.progressBar.visibility = View.GONE
@@ -207,67 +228,85 @@ class BrowseFragment : Fragment() {
         }
     }
     
-    private fun showBrowseMedia() {
+    /**
+     * Show all folders that contain any media (video or audio)
+     */
+    private fun showAllFolders() {
         isShowingFolders = true
         currentFolderId = null
         currentFolderPath = null
         currentFolderName = null
+        inFolderFilter = 0  // Reset filter when going back to folders
+        searchQuery = ""
         
-        // Clear RecyclerView pool to prevent rendering issues
+        // Hide inline filter bar at folder level
+        binding.inlineFilterBar.visibility = View.GONE
+        binding.searchBar.visibility = View.GONE
+        binding.swipeRefresh.setPadding(0, 0, 0, 0)
+        
         binding.recyclerView.recycledViewPool.clear()
         binding.recyclerView.adapter = folderAdapter
         applyFolderLayoutPreference()
         
-        val filteredFolders = when (browseFilter) {
-            1 -> {
-                // Video filter
-                allFolders.mapNotNull { folder ->
-                    val videoCount = allVideos.count { video ->
-                        video.folderId == folder.id &&
-                        !video.mimeType.startsWith("audio") &&
-                        !video.path.endsWith(".mp3", true) &&
-                        !video.path.endsWith(".m4a", true) &&
-                        !video.path.endsWith(".aac", true) &&
-                        !video.path.endsWith(".wav", true) &&
-                        !video.path.endsWith(".flac", true)
-                    }
-                    if (videoCount > 0) folder.copy(videoCount = videoCount) else null
-                }
+        // Combine video and audio folders
+        val folderMediaCount = mutableMapOf<Long, Pair<String, Int>>()  // id -> (name, count)
+        val folderPaths = mutableMapOf<Long, String>()  // id -> path
+        
+        // Count videos per folder
+        allFolders.forEach { folder ->
+            val videoCount = allVideos.count { it.folderId == folder.id }
+            if (videoCount > 0) {
+                folderMediaCount[folder.id] = folder.name to videoCount
+                folderPaths[folder.id] = folder.path
             }
-            2 -> {
-                // Audio filter
-                val audioFolderMap = mutableMapOf<String, Int>()
-                allAudioFiles.forEach { audio ->
-                    val folderPath = audio.path.substringBeforeLast("/")
-                    audioFolderMap[folderPath] = (audioFolderMap[folderPath] ?: 0) + 1
-                }
-                
-                audioFolderMap.map { (path, count) ->
-                    val folderName = path.substringAfterLast("/")
-                    FolderItem(
-                        id = path.hashCode().toLong(),
-                        name = if (folderName.isNotEmpty()) folderName else "Audio",
-                        path = path,
-                        videoCount = count
-                    )
-                }
-            }
-            else -> allFolders
         }
         
-        if (filteredFolders.isEmpty()) {
+        // Add audio folders (by path since they might not have same IDs)
+        val audioFolderMap = mutableMapOf<String, Int>()
+        allAudioFiles.forEach { audio ->
+            val folderPath = audio.path.substringBeforeLast("/")
+            audioFolderMap[folderPath] = (audioFolderMap[folderPath] ?: 0) + 1
+        }
+        
+        // Merge audio counts into existing folders or add new ones
+        audioFolderMap.forEach { (path, audioCount) ->
+            val existingFolder = allFolders.find { it.path == path }
+            if (existingFolder != null) {
+                val existing = folderMediaCount[existingFolder.id]
+                if (existing != null) {
+                    folderMediaCount[existingFolder.id] = existing.first to (existing.second + audioCount)
+                } else {
+                    folderMediaCount[existingFolder.id] = existingFolder.name to audioCount
+                    folderPaths[existingFolder.id] = existingFolder.path
+                }
+            } else {
+                // Create a new folder entry for audio-only folders
+                val folderId = path.hashCode().toLong()
+                val folderName = path.substringAfterLast("/").ifEmpty { "Audio" }
+                folderMediaCount[folderId] = folderName to audioCount
+                folderPaths[folderId] = path
+            }
+        }
+        
+        // Convert to FolderItem list
+        val allMediaFolders = folderMediaCount.map { (id, nameCount) ->
+            FolderItem(
+                id = id,
+                name = nameCount.first,
+                path = folderPaths[id] ?: "",
+                videoCount = nameCount.second
+            )
+        }
+        
+        if (allMediaFolders.isEmpty()) {
             binding.recyclerView.visibility = View.GONE
             binding.emptyView.visibility = View.VISIBLE
-            binding.emptyText.text = when (browseFilter) {
-                1 -> "No video folders found"
-                2 -> "No audio folders found"
-                else -> "No media folders found"
-            }
+            binding.emptyText.text = "No media folders found"
         } else {
             binding.emptyView.visibility = View.GONE
             binding.recyclerView.visibility = View.VISIBLE
-            folderAdapter.mediaType = browseFilter
-            folderAdapter.submitList(filteredFolders.sortedByDescending { it.videoCount })
+            folderAdapter.mediaType = 0  // All media
+            folderAdapter.submitList(allMediaFolders.sortedByDescending { it.videoCount })
         }
     }
     
@@ -275,79 +314,84 @@ class BrowseFragment : Fragment() {
         currentFolderId = folder.id
         currentFolderPath = folder.path
         currentFolderName = folder.name
+        inFolderFilter = 0  // Start with All filter
+        searchQuery = ""
         
         (activity as? VideosFragment.TabHost)?.setBackEnabled(true)
         (activity as? VideosFragment.TabHost)?.updateTitle(folder.name)
         
-        // Clear RecyclerView pool before switching adapters
+        // Show inline filter bar inside folders
+        binding.inlineFilterBar.visibility = View.VISIBLE
+        binding.searchBar.visibility = View.GONE
+        binding.swipeRefresh.setPadding(0, 48.dpToPx(), 0, 0)
+        updateFilterIconStyles()
+        
         binding.recyclerView.recycledViewPool.clear()
         
-        if (browseFilter == 2) {
-            showAudioInFolder(folder.path)
-        } else {
-            showVideosInFolder(folder.id)
-        }
+        // Load all media in this folder (both video and audio)
+        loadFolderMedia(folder)
     }
     
-    private fun showVideosInFolder(folderId: Long) {
+    private fun loadFolderMedia(folder: FolderItem) {
         isShowingFolders = false
         
-        // Clear pool and reset adapter for clean transition
-        binding.recyclerView.recycledViewPool.clear()
+        // Get videos from folder
+        val folderVideos = allVideos.filter { it.folderId == folder.id }
+        
+        // Get audio from folder path
+        val folderAudio = allAudioFiles.filter { 
+            it.path.substringBeforeLast("/") == folder.path 
+        }
+        
+        // Combine all media
+        currentFolderMedia = folderVideos + folderAudio
+        
+        // Apply current filter
+        applyInFolderFilter()
+    }
+    
+    private fun applyInFolderFilter() {
+        if (isShowingFolders) return
+        
         binding.recyclerView.adapter = null
         binding.recyclerView.adapter = videoAdapter
         applyLayoutPreference()
         
-        var folderVideos = allVideos.filter { it.folderId == folderId }
+        var filteredMedia = when (inFolderFilter) {
+            1 -> currentFolderMedia.filter { !isAudioFile(it) }  // Videos only
+            2 -> currentFolderMedia.filter { isAudioFile(it) }   // Audio only
+            else -> currentFolderMedia  // All
+        }
         
-        if (browseFilter > 0) {
-            folderVideos = folderVideos.filter { video ->
-                val isAudio = video.mimeType.startsWith("audio") ||
-                             video.path.endsWith(".mp3", true) ||
-                             video.path.endsWith(".m4a", true) ||
-                             video.path.endsWith(".aac", true) ||
-                             video.path.endsWith(".wav", true) ||
-                             video.path.endsWith(".flac", true)
-                             
-                when (browseFilter) {
-                    1 -> !isAudio
-                    2 -> isAudio
-                    else -> true
-                }
+        // Apply search filter
+        if (searchQuery.isNotEmpty()) {
+            filteredMedia = filteredMedia.filter {
+                it.title.contains(searchQuery, ignoreCase = true)
             }
         }
         
-        videoAdapter.submitList(folderVideos)
+        videoAdapter.submitList(filteredMedia)
         
-        if (folderVideos.isEmpty()) {
+        if (filteredMedia.isEmpty()) {
             binding.emptyView.visibility = View.VISIBLE
-            binding.emptyText.text = "No videos in this folder"
+            binding.emptyText.text = when {
+                searchQuery.isNotEmpty() -> "No results for \"$searchQuery\""
+                inFolderFilter == 1 -> "No videos in this folder"
+                inFolderFilter == 2 -> "No audio files in this folder"
+                else -> "No media files in this folder"
+            }
         } else {
             binding.emptyView.visibility = View.GONE
         }
     }
     
-    private fun showAudioInFolder(folderPath: String) {
-        isShowingFolders = false
-        
-        // Clear pool and reset adapter for clean transition
-        binding.recyclerView.recycledViewPool.clear()
-        binding.recyclerView.adapter = null
-        binding.recyclerView.adapter = videoAdapter
-        applyLayoutPreference()
-        
-        val folderAudio = allAudioFiles.filter { 
-            it.path.substringBeforeLast("/") == folderPath 
-        }
-        
-        videoAdapter.submitList(folderAudio)
-        
-        if (folderAudio.isEmpty()) {
-            binding.emptyView.visibility = View.VISIBLE
-            binding.emptyText.text = "No audio files in this folder"
-        } else {
-            binding.emptyView.visibility = View.GONE
-        }
+    private fun isAudioFile(item: VideoItem): Boolean {
+        return item.mimeType.startsWith("audio") ||
+               item.path.endsWith(".mp3", true) ||
+               item.path.endsWith(".m4a", true) ||
+               item.path.endsWith(".aac", true) ||
+               item.path.endsWith(".wav", true) ||
+               item.path.endsWith(".flac", true)
     }
     
     private fun applyLayoutPreference() {
@@ -373,14 +417,13 @@ class BrowseFragment : Fragment() {
         }
     }
     
+    private fun Int.dpToPx(): Int {
+        return (this * resources.displayMetrics.density).toInt()
+    }
+    
     private fun openPlayer(video: VideoItem, position: Int) {
         val context = requireContext()
-        val isAudio = video.mimeType.startsWith("audio") ||
-                     video.path.endsWith(".mp3", true) ||
-                     video.path.endsWith(".m4a", true) ||
-                     video.path.endsWith(".flac", true) ||
-                     video.path.endsWith(".wav", true) ||
-                     video.path.endsWith(".aac", true)
+        val isAudio = isAudioFile(video)
         
         if (isAudio) {
             saveAudioToHistory(video.uri.toString())
@@ -487,28 +530,29 @@ class BrowseFragment : Fragment() {
     }
     
     fun onBackPressed(): Boolean {
-        return if (!isShowingFolders && (currentFolderId != null || currentFolderPath != null)) {
-            currentFolderId = null
-            currentFolderPath = null
-            currentFolderName = null
+        // If search bar is open, close it first
+        if (binding.searchBar.visibility == View.VISIBLE) {
+            hideSearchBar()
+            return true
+        }
+        
+        // If inside a folder, go back to folder list
+        if (!isShowingFolders) {
             (activity as? VideosFragment.TabHost)?.setBackEnabled(false)
             (activity as? VideosFragment.TabHost)?.updateTitle("Browse")
-            showBrowseMedia()
-            true
-        } else {
-            false
+            showAllFolders()
+            return true
         }
+        
+        return false
     }
     
     fun refreshData() {
         if (isAdded && _binding != null) {
-            // Clear RecyclerView pool to prevent thumbnail glitches
             binding.recyclerView.recycledViewPool.clear()
             
-            // Apply layout based on current view
             if (isShowingFolders) {
                 applyFolderLayoutPreference()
-                // Reset adapter for clean refresh
                 binding.recyclerView.adapter = null
                 binding.recyclerView.adapter = folderAdapter
                 val currentList = folderAdapter.currentList.toList()
@@ -516,7 +560,6 @@ class BrowseFragment : Fragment() {
                 folderAdapter.submitList(currentList)
             } else {
                 applyLayoutPreference()
-                // Reset adapter for clean refresh
                 binding.recyclerView.adapter = null
                 binding.recyclerView.adapter = videoAdapter
                 val currentList = videoAdapter.currentList.toList()
