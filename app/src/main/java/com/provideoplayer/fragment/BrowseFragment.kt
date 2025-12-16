@@ -94,11 +94,91 @@ class BrowseFragment : Fragment() {
             setHasFixedSize(true)
             itemAnimator = null
         }
+        
+        setupSelectionBar()
+    }
+    
+    private fun setupSelectionBar() {
+        binding.btnClearSelection.setOnClickListener {
+            videoAdapter.clearSelection()
+            updateSelectionBar()
+        }
+        
+        binding.btnShareSelected.setOnClickListener {
+            shareSelectedMedia()
+        }
+        
+        binding.btnDeleteSelected.setOnClickListener {
+            deleteSelectedMedia()
+        }
+    }
+    
+    private fun updateSelectionBar() {
+        val count = videoAdapter.selectedItems.size
+        if (count > 0) {
+            binding.selectionBar.visibility = View.VISIBLE
+            binding.selectionCount.text = "$count selected"
+        } else {
+            binding.selectionBar.visibility = View.GONE
+        }
+    }
+    
+    private fun shareSelectedMedia() {
+        val selected = videoAdapter.selectedItems.toList()
+        if (selected.isEmpty()) return
+        
+        try {
+            val uris = selected.map { video ->
+                androidx.core.content.FileProvider.getUriForFile(
+                    requireContext(),
+                    "${requireContext().packageName}.fileprovider",
+                    java.io.File(video.path)
+                )
+            }
+            
+            val intent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                type = "*/*"
+                putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(uris))
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(Intent.createChooser(intent, "Share ${selected.size} files"))
+            
+            videoAdapter.clearSelection()
+            updateSelectionBar()
+        } catch (e: Exception) {
+            android.widget.Toast.makeText(requireContext(), "Error sharing files", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    private fun deleteSelectedMedia() {
+        val selected = videoAdapter.selectedItems.toList()
+        if (selected.isEmpty()) return
+        
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Delete ${selected.size} files?")
+            .setMessage("This action cannot be undone.")
+            .setPositiveButton("Delete") { _, _ ->
+                var deleted = 0
+                selected.forEach { video ->
+                    try {
+                        val file = java.io.File(video.path)
+                        if (file.exists() && file.delete()) {
+                            deleted++
+                        }
+                    } catch (e: Exception) { }
+                }
+                android.widget.Toast.makeText(requireContext(), "$deleted files deleted", android.widget.Toast.LENGTH_SHORT).show()
+                videoAdapter.clearSelection()
+                updateSelectionBar()
+                loadData()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
     
     private fun toggleSelection(video: VideoItem) {
         videoAdapter.toggleSelection(video)
-        // TODO: Add selection bar to browse fragment layout
+        updateSelectionBar()
     }
     
     private fun showMediaMenu(video: VideoItem, anchorView: View) {
