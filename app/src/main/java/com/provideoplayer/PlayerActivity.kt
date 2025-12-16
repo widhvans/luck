@@ -145,6 +145,22 @@ class PlayerActivity : AppCompatActivity() {
     // Video ended state - set true on STATE_ENDED, cleared on play/seek
     private var videoHasEnded = false
     
+    // Debug logging for troubleshooting
+    private val debugLogs = mutableListOf<String>()
+    private val maxLogEntries = 200  // Keep last 200 logs
+    
+    private fun addLog(message: String) {
+        val timestamp = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.getDefault()).format(java.util.Date())
+        val logEntry = "[$timestamp] $message"
+        debugLogs.add(logEntry)
+        android.util.Log.d("PlayerActivity", message)
+        
+        // Keep only last maxLogEntries
+        while (debugLogs.size > maxLogEntries) {
+            debugLogs.removeAt(0)
+        }
+    }
+    
     // Audio playback visualization
     private var isAudioFile = false
     private var cdAnimator: android.animation.ObjectAnimator? = null
@@ -751,25 +767,28 @@ class PlayerActivity : AppCompatActivity() {
             
             when (state) {
                 Player.STATE_BUFFERING -> {
+                    addLog("STATE: BUFFERING")
                     binding.progressBar.visibility = View.VISIBLE
                     startLoadingAnimation()
                 }
                 Player.STATE_READY -> {
+                    addLog("STATE: READY - Duration: ${player?.duration}")
                     stopLoadingAnimation()
                     binding.progressBar.visibility = View.GONE
                     updateDuration()
-                    android.util.Log.d("PlayerActivity", "Video ready - Duration: ${player?.duration}")
                 }
                 Player.STATE_ENDED -> {
                     // Video ended - ROBUST handling to prevent any loop/restart
-                    android.util.Log.d("PlayerActivity", "Video ENDED - stopping playback completely")
+                    addLog("STATE: ENDED - videoHasEnded was: $videoHasEnded")
                     
                     // SET THE FLAG - this is 100% reliable indicator that video has completed
                     videoHasEnded = true
+                    addLog("FLAG SET: videoHasEnded = true")
                     
                     player?.let { p ->
                         // 1. First pause playback
                         p.pause()
+                        addLog("ACTION: Called pause()")
                         
                         // 2. Stop progress updates
                         stopLoadingAnimation()
@@ -791,33 +810,34 @@ class PlayerActivity : AppCompatActivity() {
                                 .putString("video_positions", positionsObj.toString())
                                 .putLong("last_video_position", 0L)
                                 .apply()
-                            android.util.Log.d("PlayerActivity", "Cleared saved position for completed video")
+                            addLog("ACTION: Cleared saved position for completed video")
                         }
                         
                         // 4. DIRECTLY SET RESTART ICON - no function calls, no delays
                         binding.progressBar.visibility = View.GONE
                         binding.btnPlayPause.setImageResource(R.drawable.ic_restart)
-                        android.util.Log.d("PlayerActivity", ">>> RESTART ICON SET DIRECTLY ON STATE_ENDED <<<")
+                        addLog(">>> ICON: Set RESTART icon directly <<<")
                         showControls()
                     }
                 }
                 Player.STATE_IDLE -> {
                     // Check if there's an error
                     player?.playerError?.let { error ->
-                        android.util.Log.e("PlayerActivity", "Player error in IDLE: ${error.message}", error)
-                    }
+                        addLog("STATE: IDLE with ERROR - ${error.message}")
+                    } ?: addLog("STATE: IDLE")
                 }
             }
         }
         
         override fun onIsPlayingChanged(isPlaying: Boolean) {
-            android.util.Log.d("PlayerActivity", "isPlaying changed: $isPlaying, videoHasEnded: $videoHasEnded")
+            addLog("isPlayingChanged: $isPlaying, videoHasEnded: $videoHasEnded")
             
             // CRITICAL: Don't override restart icon if video has ended
             if (videoHasEnded && !isPlaying) {
-                android.util.Log.d("PlayerActivity", ">>> BLOCKING updatePlayPauseButton - video ended, keeping restart icon <<<")
+                addLog(">>> BLOCKED: Not calling updatePlayPauseButton, keeping restart icon <<<")
                 // Just update CD animation and progress, but keep restart icon
             } else {
+                addLog("Calling updatePlayPauseButton()")
                 updatePlayPauseButton()
             }
             
@@ -1251,9 +1271,13 @@ class PlayerActivity : AppCompatActivity() {
             toggleLock()
         }
         
-        // Settings button
+        // Settings button - tap to show menu, LONG PRESS to show debug logs
         binding.btnSettings.setOnClickListener {
             showSettingsMenu()
+        }
+        binding.btnSettings.setOnLongClickListener {
+            showDebugLogsDialog()
+            true
         }
         
         // Subtitle button
@@ -1391,11 +1415,14 @@ class PlayerActivity : AppCompatActivity() {
     private fun togglePlayPause() {
         player?.let {
             if (it.isPlaying) {
+                addLog("togglePlayPause: PAUSING video")
                 it.pause()
             } else {
                 // If video has ended OR position is at end, restart from beginning
                 val isAtEnd = videoHasEnded || (it.duration > 0 && it.currentPosition >= it.duration - 1500)
+                addLog("togglePlayPause: PLAYING - isAtEnd=$isAtEnd, videoHasEnded=$videoHasEnded, pos=${it.currentPosition}/${it.duration}")
                 if (isAtEnd) {
+                    addLog("togglePlayPause: Seeking to 0, clearing videoHasEnded flag")
                     it.seekTo(0)
                     videoHasEnded = false  // Clear the flag after restart
                 }
@@ -1412,7 +1439,12 @@ class PlayerActivity : AppCompatActivity() {
             // SIMPLE LOGIC: Only use videoHasEnded flag or STATE_ENDED - NO position checks
             val isEnded = videoHasEnded || playbackState == Player.STATE_ENDED
             
-            android.util.Log.d("PlayerActivity", "updatePlayPauseButton: isPlaying=$isPlaying, isEnded=$isEnded, videoHasEnded=$videoHasEnded, playbackState=$playbackState")
+            val iconName = when {
+                isEnded && !isPlaying -> "RESTART"
+                isPlaying -> "PAUSE"
+                else -> "PLAY"
+            }
+            addLog("updatePlayPauseButton: Setting icon to $iconName (isPlaying=$isPlaying, isEnded=$isEnded, videoHasEnded=$videoHasEnded, state=$playbackState)")
             
             val iconRes = when {
                 isEnded && !isPlaying -> R.drawable.ic_restart
@@ -2303,6 +2335,53 @@ class PlayerActivity : AppCompatActivity() {
         } else {
             super.onBackPressed()
         }
+    }
+    
+    /**
+     * Show debug logs dialog - accessible via long press on settings icon
+     */
+    private fun showDebugLogsDialog() {
+        val logsText = if (debugLogs.isEmpty()) {
+            "No logs yet. Play/pause video to generate logs."
+        } else {
+            debugLogs.joinToString("\n")
+        }
+        
+        // Add current player state info at top
+        val stateInfo = buildString {
+            appendLine("=== PLAYER STATE ===")
+            player?.let { p ->
+                appendLine("isPlaying: ${p.isPlaying}")
+                appendLine("playbackState: ${p.playbackState}")
+                appendLine("position: ${p.currentPosition}/${p.duration}")
+                appendLine("videoHasEnded: $videoHasEnded")
+                appendLine("currentIndex: $currentIndex/${playlist.size}")
+            } ?: appendLine("Player is null")
+            appendLine("===================")
+            appendLine()
+        }
+        
+        val fullLog = stateInfo + logsText
+        
+        MaterialAlertDialogBuilder(this)
+            .setTitle("🔧 Debug Logs")
+            .setMessage(fullLog)
+            .setPositiveButton("📋 Copy All") { dialog, _ ->
+                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = ClipData.newPlainText("Player Debug Logs", fullLog)
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(this, "Logs copied to clipboard!", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            }
+            .setNegativeButton("Close") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setNeutralButton("🗑️ Clear") { dialog, _ ->
+                debugLogs.clear()
+                Toast.makeText(this, "Logs cleared", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            }
+            .show()
     }
 
     enum class GestureType {
