@@ -90,4 +90,10 @@
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">4dp</item>
     </style>
+    
+    <style name="RoundedCornerMedium" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">8dp</item>
+    </style>
 </resources>
+

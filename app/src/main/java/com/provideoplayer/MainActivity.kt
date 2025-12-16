@@ -386,9 +386,12 @@ class MainActivity : AppCompatActivity(), VideosFragment.TabHost {
             val dialogView = layoutInflater.inflate(R.layout.dialog_history, null)
             val recyclerView = dialogView.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.historyRecyclerView)
             val emptyText = dialogView.findViewById<android.widget.TextView>(R.id.emptyText)
+            val countText = dialogView.findViewById<android.widget.TextView>(R.id.countText)
+            
+            // Update count
+            countText.text = "${historyItems.size} video${if (historyItems.size != 1) "s" else ""}"
             
             val dialog = MaterialAlertDialogBuilder(this)
-                .setTitle("📺 Recently Watched")
                 .setView(dialogView)
                 .setNegativeButton("Close", null)
                 .create()
