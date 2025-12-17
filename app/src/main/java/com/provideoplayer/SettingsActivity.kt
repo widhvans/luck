@@ -84,6 +84,9 @@ class SettingsActivity : AppCompatActivity() {
 
         // Update speed text
         updateSpeedText()
+        
+        // Update theme text
+        updateThemeText()
     }
     
     private fun updateAllFilesAccessState() {
@@ -98,6 +101,11 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
+        // Theme selection
+        binding.layoutTheme.setOnClickListener {
+            showThemeDialog()
+        }
+        
         // Default speed selection
         binding.layoutDefaultSpeed.setOnClickListener {
             showSpeedDialog()
@@ -187,6 +195,30 @@ class SettingsActivity : AppCompatActivity() {
     private fun updateSpeedText() {
         val currentSpeed = prefs.getFloat(KEY_DEFAULT_SPEED, 1.0f)
         binding.textSpeedValue.text = "${currentSpeed}x"
+    }
+    
+    private fun updateThemeText() {
+        val themeMode = prefs.getInt(KEY_THEME, 0)
+        val themeNames = arrayOf("System Default", "Light", "Dark", "AMOLED Black", "Blue", "Pink")
+        binding.textThemeValue.text = themeNames.getOrNull(themeMode) ?: "System Default"
+    }
+    
+    private fun showThemeDialog() {
+        val themes = arrayOf("System Default", "Light", "Dark", "AMOLED Black", "Blue", "Pink")
+        val currentTheme = prefs.getInt(KEY_THEME, 0)
+        
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Choose Theme")
+            .setSingleChoiceItems(themes, currentTheme) { dialog, which ->
+                prefs.edit().putInt(KEY_THEME, which).apply()
+                updateThemeText()
+                dialog.dismiss()
+                
+                // Recreate activity to apply theme
+                Toast.makeText(this, "Theme changed. Restart app for full effect.", Toast.LENGTH_SHORT).show()
+                recreate()
+            }
+            .show()
     }
 
     private fun clearCache() {
