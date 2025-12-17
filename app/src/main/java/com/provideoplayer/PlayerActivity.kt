@@ -159,6 +159,9 @@ class PlayerActivity : AppCompatActivity() {
         while (debugLogs.size > maxLogEntries) {
             debugLogs.removeAt(0)
         }
+        
+        // Persist logs immediately so they survive crashes
+        com.provideoplayer.utils.PlayerLogManager.saveLogs(this, debugLogs)
     }
     
     // Audio playback visualization

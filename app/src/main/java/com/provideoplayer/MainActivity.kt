@@ -1,5 +1,8 @@
 package com.provideoplayer 
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -19,6 +22,7 @@ import com.provideoplayer.databinding.ActivityMainBinding
 import com.provideoplayer.fragment.BrowseFragment
 import com.provideoplayer.fragment.VideosFragment
 import com.provideoplayer.utils.PermissionManager
+import com.provideoplayer.utils.PlayerLogManager
 
 class MainActivity : AppCompatActivity(), VideosFragment.TabHost {
 
@@ -184,6 +188,24 @@ class MainActivity : AppCompatActivity(), VideosFragment.TabHost {
                 return true
             }
         })
+        
+        // Add long press listener on sort button to show player logs
+        binding.toolbar.post {
+            // Find the sort menu item view by iterating through toolbar children
+            for (i in 0 until binding.toolbar.childCount) {
+                val child = binding.toolbar.getChildAt(i)
+                if (child is androidx.appcompat.widget.ActionMenuView) {
+                    for (j in 0 until child.childCount) {
+                        val menuItemView = child.getChildAt(j)
+                        // Set long press on all action menu items
+                        menuItemView.setOnLongClickListener {
+                            showPlayerLogsDialog()
+                            true
+                        }
+                    }
+                }
+            }
+        }
         
         return true
     }
@@ -508,6 +530,50 @@ class MainActivity : AppCompatActivity(), VideosFragment.TabHost {
         }
     }
 
+    /**
+     * Show player logs dialog - accessible via long press on any toolbar button
+     * Allows copying logs even after player crashes
+     */
+    private fun showPlayerLogsDialog() {
+        val logs = PlayerLogManager.getLogs(this)
+        
+        val logsText = if (logs.isEmpty()) {
+            "No player logs available.\n\nPlay a video to generate logs."
+        } else {
+            val header = buildString {
+                appendLine("=== PLAYER LOGS ===")
+                appendLine("Total entries: ${logs.size}")
+                appendLine("===================")
+                appendLine()
+            }
+            header + logs.joinToString("\n")
+        }
+        
+        MaterialAlertDialogBuilder(this)
+            .setTitle("🔧 Player Logs")
+            .setMessage(logsText)
+            .setPositiveButton("📋 Copy All") { dialog, _ ->
+                if (logs.isEmpty()) {
+                    Toast.makeText(this, "No logs to copy", Toast.LENGTH_SHORT).show()
+                } else {
+                    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val clip = ClipData.newPlainText("Player Debug Logs", logsText)
+                    clipboard.setPrimaryClip(clip)
+                    Toast.makeText(this, "Logs copied to clipboard!", Toast.LENGTH_SHORT).show()
+                }
+                dialog.dismiss()
+            }
+            .setNegativeButton("Close") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setNeutralButton("🗑️ Clear") { dialog, _ ->
+                PlayerLogManager.clearLogs(this)
+                Toast.makeText(this, "Logs cleared", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            }
+            .show()
+    }
+    
     companion object {
         private const val DELETE_REQUEST_CODE = 1001
     }
