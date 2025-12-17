@@ -31,6 +31,12 @@
     <color name="background_pink">#FF1A1218</color>
     <color name="surface_pink">#FF2D1F2A</color>
     
+    <!-- Light Theme Colors -->
+    <color name="background_light">#FFF5F5F5</color>
+    <color name="surface_light">#FFFFFFFF</color>
+    <color name="text_dark">#DD000000</color>
+    <color name="text_dark_secondary">#8A000000</color>
+    
     <!-- Text Colors -->
     <color name="text_primary">#FFFFFFFF</color>
     <color name="text_secondary">#B3FFFFFF</color>

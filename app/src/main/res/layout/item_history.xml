@@ -61,7 +61,7 @@
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
                 android:maxLines="2"
-                android:textColor="@color/text_primary"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="14sp"
                 android:textStyle="bold"
                 android:lineSpacingExtra="2dp" />
@@ -72,7 +72,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:text="Tap to play"
-                android:textColor="@color/text_secondary"
+                android:textColor="?android:textColorSecondary"
                 android:textSize="12sp" />
 
         </LinearLayout>
@@ -84,7 +84,7 @@
             android:layout_marginStart="8dp"
             android:src="@drawable/ic_chevron_right"
             android:alpha="0.5"
-            app:tint="@color/text_secondary" />
+            app:tint="?android:textColorSecondary" />
 
     </LinearLayout>
 

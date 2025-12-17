@@ -28,7 +28,7 @@
             android:layout_weight="1"
             android:layout_marginStart="12dp"
             android:text="Recently Watched"
-            android:textColor="@color/text_primary"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="18sp"
             android:textStyle="bold" />
 

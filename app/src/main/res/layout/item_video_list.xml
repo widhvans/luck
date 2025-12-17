@@ -90,7 +90,7 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="2"
-            android:textColor="@color/text_primary"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="14sp"
             android:lineSpacingExtra="-2dp"
             tools:text="Video Title Here can be long.mp4" />
@@ -107,7 +107,7 @@
                 android:id="@+id/videoQuality"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/text_secondary"
+                android:textColor="?android:textColorSecondary"
                 android:textSize="12sp"
                 tools:text="1080p" />
 
@@ -116,14 +116,14 @@
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="4dp"
                 android:text="|"
-                android:textColor="@color/text_secondary"
+                android:textColor="?android:textColorSecondary"
                 android:textSize="12sp" />
 
             <TextView
                 android:id="@+id/videoSize"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/text_secondary"
+                android:textColor="?android:textColorSecondary"
                 android:textSize="12sp"
                 tools:text="21.25MB" />
 
@@ -143,10 +143,10 @@
                 android:layout_height="wrap_content"
                 android:drawableStart="@drawable/ic_folder"
                 android:drawablePadding="4dp"
-                android:drawableTint="@color/text_secondary"
+                android:drawableTint="?android:textColorSecondary"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:textColor="@color/text_secondary"
+                android:textColor="?android:textColorSecondary"
                 android:textSize="11sp"
                 tools:text="Camera" />
 
@@ -162,6 +162,6 @@
         android:src="@drawable/ic_more_vert"
         android:padding="4dp"
         android:background="?attr/selectableItemBackgroundBorderless"
-        app:tint="@color/text_secondary" />
+        app:tint="?android:textColorSecondary" />
 
 </LinearLayout>

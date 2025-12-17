@@ -107,7 +107,7 @@
                     android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:textColor="@color/text_primary"
+                    android:textColor="?attr/colorOnSurface"
                     android:textSize="12sp"
                     tools:text="Video Title Here" />
 
@@ -119,7 +119,7 @@
                     android:src="@drawable/ic_more_vert"
                     android:padding="2dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    app:tint="@color/text_secondary" />
+                    app:tint="?android:textColorSecondary" />
 
             </LinearLayout>
             
@@ -133,7 +133,7 @@
                     android:id="@+id/videoSize"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/text_secondary"
+                    android:textColor="?android:textColorSecondary"
                     android:textSize="10sp"
                     tools:text="25.5 MB" />
                     
@@ -142,14 +142,14 @@
                     android:layout_height="wrap_content"
                     android:layout_marginHorizontal="4dp"
                     android:text="•"
-                    android:textColor="@color/text_secondary"
+                    android:textColor="?android:textColorSecondary"
                     android:textSize="10sp" />
                     
                 <TextView
                     android:id="@+id/videoDate"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/text_secondary"
+                    android:textColor="?android:textColorSecondary"
                     android:textSize="10sp"
                     tools:text="Dec 16" />
                     
