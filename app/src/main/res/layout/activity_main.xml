@@ -18,7 +18,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:title="@string/app_name"
-            app:titleTextColor="@color/white"
+            app:titleTextColor="?attr/colorOnSurface"
             app:popupTheme="@style/ThemeOverlay.Material3.Dark"
             app:menu="@menu/menu_main" />
 
@@ -50,8 +50,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="?colorSurface"
-            app:itemIconTint="@color/white"
-            app:itemTextColor="@color/white"
+            app:itemIconTint="?attr/colorOnSurface"
+            app:itemTextColor="?attr/colorOnSurface"
             app:labelVisibilityMode="labeled"
             app:menu="@menu/menu_bottom_nav" />
 
