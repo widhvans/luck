@@ -171,17 +171,30 @@ class MainActivity : AppCompatActivity(), VideosFragment.TabHost {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_main, menu)
         
-        // Tint menu icons based on theme
-        val typedValue = android.util.TypedValue()
-        theme.resolveAttribute(android.R.attr.colorControlNormal, typedValue, true)
-        val iconColor = typedValue.data
+        // Determine icon color based on current theme
+        val prefs = getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
+        val themeMode = prefs.getInt("theme_mode", 0)
         
+        // Light theme is mode 1, all others are dark
+        val iconColor = if (themeMode == 1) {
+            android.graphics.Color.parseColor("#DD000000") // Dark for light theme
+        } else {
+            android.graphics.Color.WHITE // White for dark themes
+        }
+        
+        // Tint all menu icons
         for (i in 0 until menu.size()) {
             val item = menu.getItem(i)
             item.icon?.let {
                 it.mutate()
-                it.setTint(iconColor)
+                it.setColorFilter(iconColor, android.graphics.PorterDuff.Mode.SRC_IN)
             }
+        }
+        
+        // Also tint toolbar overflow icon (three dots)
+        binding.toolbar.overflowIcon?.let {
+            it.mutate()
+            it.setColorFilter(iconColor, android.graphics.PorterDuff.Mode.SRC_IN)
         }
         
         // Setup search

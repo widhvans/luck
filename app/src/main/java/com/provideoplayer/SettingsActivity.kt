@@ -67,11 +67,17 @@ class SettingsActivity : AppCompatActivity() {
             title = "Settings"
         }
         
-        // Tint navigation icon and title based on theme
-        val typedValue = android.util.TypedValue()
-        theme.resolveAttribute(android.R.attr.colorControlNormal, typedValue, true)
-        val iconColor = typedValue.data
-        binding.toolbar.navigationIcon?.setTint(iconColor)
+        // Determine icon color based on current theme
+        val themeMode = prefs.getInt(KEY_THEME, 0)
+        
+        // Light theme is mode 1, all others are dark
+        val iconColor = if (themeMode == 1) {
+            android.graphics.Color.parseColor("#DD000000") // Dark for light theme
+        } else {
+            android.graphics.Color.WHITE // White for dark themes
+        }
+        
+        binding.toolbar.navigationIcon?.setColorFilter(iconColor, android.graphics.PorterDuff.Mode.SRC_IN)
         binding.toolbar.setTitleTextColor(iconColor)
         
         binding.toolbar.setNavigationOnClickListener {
