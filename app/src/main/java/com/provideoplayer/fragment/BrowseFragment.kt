@@ -485,6 +485,10 @@ class BrowseFragment : Fragment() {
             )
         }
         
+        // Update subtitle at folder level - show total media count
+        val totalMedia = allVideos.size + allAudioFiles.size
+        (activity as? VideosFragment.TabHost)?.updateSubtitle("$totalMedia media")
+        
         if (allMediaFolders.isEmpty()) {
             binding.recyclerView.visibility = View.GONE
             binding.emptyView.visibility = View.VISIBLE
@@ -558,6 +562,14 @@ class BrowseFragment : Fragment() {
         }
         
         videoAdapter.submitList(filteredMedia)
+        
+        // Update subtitle based on filter
+        val subtitleText = when (inFolderFilter) {
+            1 -> "${filteredMedia.size} video"
+            2 -> "${filteredMedia.size} audio"
+            else -> "${filteredMedia.size} media"
+        }
+        (activity as? VideosFragment.TabHost)?.updateSubtitle(subtitleText)
         
         if (filteredMedia.isEmpty()) {
             binding.emptyView.visibility = View.VISIBLE
