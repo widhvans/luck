@@ -1685,8 +1685,8 @@ class PlayerActivity : AppCompatActivity() {
         // Cancel any pending hide
         binding.seekIndicator.removeCallbacks(hideSeekIndicatorRunnable)
         
-        // Show the seek preview container and update indicator text
-        binding.seekPreviewContainer.visibility = View.VISIBLE
+        // Only show the seek indicator text, not the preview window
+        binding.seekPreviewContainer.visibility = View.GONE
         binding.seekIndicator.visibility = View.VISIBLE
         binding.seekIndicator.text = "${if (seconds > 0) "+" else ""}$seconds sec"
         
