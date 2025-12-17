@@ -5,7 +5,7 @@
     <!-- Permissions -->
     <string name="permission_title">Storage Permission Required</string>
     <string name="permission_message">Akplayer needs access to your storage to find and play videos.</string>
-    <string name="grant_permission">Grant Permission</string>
+    <string name="grant_permission">Allow</string>
     
     <!-- Player -->
     <string name="play">Play</string>
