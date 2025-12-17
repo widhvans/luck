@@ -183,6 +183,31 @@ class PlayerActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // Setup global exception handler to capture crashes in logs
+        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            // Log the crash details before the app dies
+            try {
+                val crashLog = buildString {
+                    appendLine("!!! APP CRASH !!!")
+                    appendLine("Thread: ${thread.name}")
+                    appendLine("Exception: ${throwable.javaClass.simpleName}")
+                    appendLine("Message: ${throwable.message}")
+                    appendLine("Stack trace:")
+                    throwable.stackTrace.take(15).forEach { element ->
+                        appendLine("  at $element")
+                    }
+                }
+                // Save crash log to persistent storage
+                com.provideoplayer.utils.PlayerLogManager.addLog(applicationContext, crashLog)
+                android.util.Log.e("PlayerActivity", "CRASH LOGGED: $crashLog")
+            } catch (e: Exception) {
+                // Ignore - we're crashing anyway
+            }
+            // Call the default handler to let the app crash normally
+            defaultHandler?.uncaughtException(thread, throwable)
+        }
+        
         // Close any existing PlayerActivity (including PiP) before starting new one
         finishExistingInstance()
         currentInstance = this
@@ -1020,18 +1045,29 @@ class PlayerActivity : AppCompatActivity() {
             
             override fun onDoubleTap(e: MotionEvent): Boolean {
                 if (!isLocked) {
-                    val x = e.x
-                    if (x < screenWidth / 3) {
-                        // Left third - rewind
-                        seekBackward()
-                        showSeekIndicator(-10, isLeft = true)
-                    } else if (x > screenWidth * 2 / 3) {
-                        // Right third - forward
-                        seekForward()
-                        showSeekIndicator(10, isLeft = false)
-                    } else {
-                        // Center - play/pause
-                        togglePlayPause()
+                    try {
+                        addLog("DOUBLE_TAP: x=${e.x}, screenWidth=$screenWidth, isNetworkStream=$isNetworkStream")
+                        val x = e.x
+                        if (x < screenWidth / 3) {
+                            // Left third - rewind
+                            addLog("DOUBLE_TAP: Seeking backward")
+                            seekBackward()
+                            showSeekIndicator(-10, isLeft = true)
+                        } else if (x > screenWidth * 2 / 3) {
+                            // Right third - forward
+                            addLog("DOUBLE_TAP: Seeking forward")
+                            seekForward()
+                            showSeekIndicator(10, isLeft = false)
+                        } else {
+                            // Center - play/pause
+                            addLog("DOUBLE_TAP: Toggle play/pause")
+                            togglePlayPause()
+                        }
+                        addLog("DOUBLE_TAP: Completed successfully")
+                    } catch (ex: Exception) {
+                        addLog("DOUBLE_TAP ERROR: ${ex.javaClass.simpleName}: ${ex.message}")
+                        addLog("Stack: ${ex.stackTrace.take(5).joinToString(" -> ") { it.toString() }}")
+                        throw ex  // Re-throw to maintain normal behavior
                     }
                 }
                 return true
