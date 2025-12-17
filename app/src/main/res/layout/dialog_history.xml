@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="@color/surface_dark">
+    android:background="?attr/colorSurface">
 
     <!-- Header with icon -->
     <LinearLayout
@@ -14,7 +14,7 @@
         android:gravity="center_vertical"
         android:paddingHorizontal="16dp"
         android:paddingVertical="12dp"
-        android:background="@color/surface_dark_elevated">
+        android:background="?attr/colorSurface">
 
         <ImageView
             android:layout_width="28dp"
@@ -46,7 +46,7 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="@color/surface_dark" />
+        android:background="?attr/colorSurface" />
 
     <TextView
         android:id="@+id/emptyText"

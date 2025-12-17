@@ -214,9 +214,14 @@ class SettingsActivity : AppCompatActivity() {
                 updateThemeText()
                 dialog.dismiss()
                 
-                // Recreate activity to apply theme
-                Toast.makeText(this, "Theme changed. Restart app for full effect.", Toast.LENGTH_SHORT).show()
-                recreate()
+                // Restart app completely to apply theme everywhere
+                Toast.makeText(this, "Applying theme...", Toast.LENGTH_SHORT).show()
+                
+                // Start MainActivity with clear flags to restart the app
+                val intent = Intent(this, MainActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
+                finish()
             }
             .show()
     }

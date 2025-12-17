@@ -27,7 +27,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:scaleType="centerCrop"
-                android:background="@color/surface_dark"
+                android:background="?attr/colorSurface"
                 tools:src="@drawable/ic_video_placeholder" />
 
             <!-- Selection Checkbox - Top Left -->

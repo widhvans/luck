@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="3dp"
-    app:cardBackgroundColor="@color/surface_dark"
+    app:cardBackgroundColor="?attr/colorSurface"
     app:cardCornerRadius="8dp"
     app:cardElevation="1dp">
 
@@ -25,7 +25,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="85dp"
                 android:scaleType="centerCrop"
-                android:background="@color/surface_dark"
+                android:background="?attr/colorSurface"
                 tools:src="@drawable/ic_video_placeholder" />
 
             <!-- Selection Checkbox -->
